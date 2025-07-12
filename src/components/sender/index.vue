@@ -34,6 +34,7 @@
 </template>
 <script name="LangSender" setup lang="ts">
 import { ref } from 'vue'
+import { ChatSender as TChatSender } from '@tdesign-vue-next/chat'
 import { SystemSumIcon } from 'tdesign-icons-vue-next'
 const _emits = defineEmits(['select', 'send'])
 const loading = ref(false)

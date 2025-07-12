@@ -1,7 +1,5 @@
 import { createApp } from 'vue'
 import { createPinia } from 'pinia'
-import TDesign from 'tdesign-vue-next'
-import TDesignChat from '@tdesign-vue-next/chat'
 import NProgress from 'nprogress'
 import router from './router'
 import App from './App.vue'
@@ -28,7 +26,6 @@ function createVueApp() {
 
   app.use(pinia)
   app.use(router)
-  app.use(TDesign).use(TDesignChat)
 
   return app
 }

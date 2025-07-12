@@ -1,8 +1,8 @@
 <template>
   <div class="message-content-wrapper">
-    <t-chat-content v-if="item.status === 'error'" :content="item.error"> </t-chat-content>
+    <TChatContent v-if="item.status === 'error'" :content="item.error"> </TChatContent>
     <!-- @ts-ignore -->
-    <t-chat-reasoning
+    <TChatReasoning
       v-if="item.role === 'assistant'"
       expand-icon-placement="right"
       :collapse-panel-props="{
@@ -11,15 +11,15 @@
       }"
       @expand-change="handleReasoningChange($event, { index })"
     >
-    </t-chat-reasoning>
-    <t-chat-content v-if="item.content.length > 0" :content="item.content"> </t-chat-content>
+    </TChatReasoning>
+    <TChatContent v-if="item.content.length > 0" :content="item.content"> </TChatContent>
   </div>
 </template>
 <script name="LangContent" setup lang="ts">
 import { computed, h } from 'vue'
-import { useChatStore, type ChatMessage } from '@/stores/chat';
-import { ChatContent, ChatLoading } from '@tdesign-vue-next/chat';
-import { CheckCircleIcon } from 'tdesign-icons-vue-next';
+import { useChatStore, type ChatMessage } from '@/stores/chat'
+import { ChatContent as TChatContent, ChatReasoning as TChatReasoning, ChatLoading } from '@tdesign-vue-next/chat'
+import { CheckCircleIcon } from 'tdesign-icons-vue-next'
 
 /**
  * 组件属性
@@ -32,12 +32,12 @@ interface Props {
 /**
  * 组件事件
  */
-interface Emits {
-  (e: 'message-click', message: ChatMessage, index: number): void
-}
+// interface Emits {
+//   (e: 'message-click', message: ChatMessage, index: number): void
+// }
 
 const _props = defineProps<Props>()
-const emit = defineEmits<Emits>()
+// const emit = defineEmits<Emits>()
 const chatStore = useChatStore()
 const item = computed(() => _props.item)
 const index = computed(() => _props.index)
@@ -51,7 +51,7 @@ const handleReasoningChange = (value: any, { index }: any) => {
   console.log('handleChange', value, index)
 }
 const renderReasoningContent = (reasoningContent: string) => {
-  return h(ChatContent, { content: reasoningContent, role: 'assistant' })
+  return h(TChatContent, { content: reasoningContent, role: 'assistant' })
 }
 const renderHeader = (flag: boolean, item: any) => {
   if (flag) {
@@ -78,16 +78,27 @@ const renderHeader = (flag: boolean, item: any) => {
   border-radius: 6px;
   padding: 4px;
   margin: -4px;
-  
+
   &:hover {
     background-color: var(--td-bg-color-container-hover);
     transform: translateY(-1px);
     box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
   }
-  
+
   &:active {
     transform: translateY(0);
     box-shadow: 0 1px 4px rgba(0, 0, 0, 0.1);
+  }
+
+  ::v-deep(.t-chat__detail-reasoning) {
+    background-color: #ffffff;
+    padding-top: 0;
+    .t-collapse-panel {
+      margin-left: 0;
+    }
+    div {
+      background-color: #ffffff !important;
+    }
   }
 }
 </style>

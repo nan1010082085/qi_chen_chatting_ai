@@ -4,16 +4,10 @@
     <div class="chat-sidebar-container" :class="{ collapsed: sidebarCollapsed }">
       <ChatSidebar @session-changed="onSessionChanged" />
     </div>
-    
+
     <!-- 侧边栏切换按钮 -->
     <div class="sidebar-toggle">
-      <t-button 
-        theme="default" 
-        variant="outline" 
-        size="small" 
-        shape="square"
-        @click="toggleSidebar"
-      >
+      <t-button theme="default" variant="outline" size="small" shape="square" @click="toggleSidebar">
         <template #icon>
           <ViewListIcon v-if="sidebarCollapsed" />
           <ChevronLeftIcon v-else />
@@ -32,10 +26,10 @@
               <EditIcon class="edit-icon" />
             </h1>
             <div v-else class="title-edit-container">
-              <t-input 
-                v-model="editingTitleValue" 
-                @blur="saveTitle" 
-                @keyup.enter="saveTitle" 
+              <t-input
+                v-model="editingTitleValue"
+                @blur="saveTitle"
+                @keyup.enter="saveTitle"
                 @keyup.esc="cancelEditTitle"
                 class="title-input"
                 placeholder="输入对话名称"
@@ -100,7 +94,16 @@ import { useUserStore } from '@/stores/user'
 import { deepSeekService } from '@/services/deepseek'
 import { DateTimeUtils } from '@/utils'
 import { LangSender, LangContent, ChatSidebar } from '@/components'
-import { ViewListIcon, ChevronLeftIcon, UserIcon, DeleteIcon, EditIcon, CheckIcon, CloseIcon } from 'tdesign-icons-vue-next'
+import { Chat as TChat } from '@tdesign-vue-next/chat'
+import {
+  ViewListIcon,
+  ChevronLeftIcon,
+  UserIcon,
+  DeleteIcon,
+  EditIcon,
+  CheckIcon,
+  CloseIcon,
+} from 'tdesign-icons-vue-next'
 
 defineOptions({
   components: {
@@ -158,7 +161,7 @@ const formatTime = (timestamp: number): string => {
 const scrollToBottom = () => {
   nextTick(() => {
     if (TChatRef.value) {
-      TChatRef.value!.scrollToBottom()
+      TChatRef.value!.scrollToBottom({ behavior: 'smooth' })
     }
   })
 }
@@ -181,11 +184,11 @@ const sendMessage = async () => {
     chatStore.setLoading(true)
     chatStore.setError(null)
 
-    // 更新用户消息状态为已发送
-    chatStore.updateMessageStatus(userMessageId, 'sent')
+    // 更新用户消息状态为已发送（立即保存）
+    chatStore.updateMessageStatus(userMessageId, 'sent', undefined, true)
 
-    // 添加AI消息占位符
-    const aiMessageId = chatStore.addMessage('', 'assistant')
+    // 添加AI消息占位符（不立即保存到数据库）
+    const aiMessageId = chatStore.addMessage('', 'assistant', false)
     scrollToBottom()
 
     // 获取消息历史（包括当前用户消息）
@@ -198,7 +201,7 @@ const sendMessage = async () => {
     const result = await deepSeekService.sendMessage(
       messages.slice(0, -1), // 排除AI占位符消息
       (chunk: string) => {
-        console.log('接收内容块:', chunk)
+        // console.log('接收内容块:', chunk)
         // 流式更新AI回复
         aiResponse += chunk
         const aiMessage = chatStore.currentMessages.find(m => m.id === aiMessageId)
@@ -208,7 +211,7 @@ const sendMessage = async () => {
         scrollToBottom()
       },
       (reasoning: string) => {
-        console.log('接收思考过程:', reasoning)
+        // console.log('接收思考过程:', reasoning)
         // 累积思考过程内容
         fullReasoningContent += reasoning
         // 实时更新消息的思考内容
@@ -222,6 +225,8 @@ const sendMessage = async () => {
     if (aiMessage) {
       // 设置最终的回复内容
       aiMessage.content = result || aiResponse
+      // 更新消息状态为已完成
+      aiMessage.status = 'sent'
 
       // 设置最终的思考过程（如果有的话）
       if (fullReasoningContent) {
@@ -230,6 +235,8 @@ const sendMessage = async () => {
       }
     }
 
+    // 流式输出完成后，统一保存到IndexedDB
+    await chatStore.finishStreamAndSave()
     scrollToBottom()
   } catch (error) {
     console.error('Send message error:', error)
@@ -237,8 +244,8 @@ const sendMessage = async () => {
     chatStore.setError(errorMessage)
     MessagePlugin.error(errorMessage)
 
-    // 更新用户消息状态为错误
-    chatStore.updateMessageStatus(userMessageId, 'error', errorMessage)
+    // 更新用户消息状态为错误（立即保存）
+    chatStore.updateMessageStatus(userMessageId, 'error', errorMessage, true)
   } finally {
     chatStore.setLoading(false)
   }
@@ -247,18 +254,21 @@ const sendMessage = async () => {
 /**
  * 清空聊天记录
  */
-const clearChat = async () => {
+const clearChat = () => {
   try {
-    await DialogPlugin.confirm({
+    const dialog = DialogPlugin.confirm({
       header: '确认清空',
       body: '确定要清空当前对话吗？此操作不可恢复。',
       confirmBtn: '确定',
       cancelBtn: '取消',
       theme: 'warning',
+      onConfirm() {
+        chatStore.clearCurrentSession()
+        chatStore.setError(null)
+        MessagePlugin.success('对话已清空')
+        dialog.hide()
+      },
     })
-    chatStore.clearCurrentSession()
-    chatStore.setError(null)
-    MessagePlugin.success('对话已清空')
   } catch {
     // 用户取消操作
   }
@@ -269,7 +279,7 @@ const clearChat = async () => {
  */
 const startEditTitle = () => {
   if (!chatStore.currentSession) return
-  
+
   isEditingTitle.value = true
   editingTitleValue.value = chatStore.currentSession.title
 }
@@ -279,19 +289,19 @@ const startEditTitle = () => {
  */
 const saveTitle = async () => {
   if (!chatStore.currentSession) return
-  
+
   const newTitle = editingTitleValue.value.trim()
   if (!newTitle) {
     MessagePlugin.warning('对话名称不能为空')
     return
   }
-  
+
   if (newTitle === chatStore.currentSession.title) {
     // 标题没有变化，直接取消编辑
     cancelEditTitle()
     return
   }
-  
+
   try {
     // 更新会话标题
     await chatStore.updateSessionTitle(chatStore.currentSession.id, newTitle)
@@ -355,15 +365,17 @@ const onSessionChanged = () => {
  */
 const onMessageClick = (message: ChatMessage, index: number) => {
   console.log('消息被点击:', message, '索引:', index)
-  
+
   // 可以在这里添加更多的消息点击处理逻辑
   // 比如：显示消息详情、编辑消息、回复消息等
-  
+
   // 滚动到被点击的消息位置（可选）
   scrollToBottom()
-  
+
   // 显示消息信息（可选）
-  MessagePlugin.info(`点击了${message.role === 'user' ? '用户' : 'AI'}消息：${message.content.slice(0, 50)}${message.content.length > 50 ? '...' : ''}`)
+  MessagePlugin.info(
+    `点击了${message.role === 'user' ? '用户' : 'AI'}消息：${message.content.slice(0, 50)}${message.content.length > 50 ? '...' : ''}`,
+  )
 }
 
 onMounted(() => {
@@ -390,7 +402,7 @@ onMounted(() => {
   height: 100%;
   flex-shrink: 0;
   transition: all 0.3s ease;
-  
+
   &.collapsed {
     width: 0;
     overflow: hidden;
@@ -403,11 +415,11 @@ onMounted(() => {
   left: 16px;
   z-index: 10;
   transition: all 0.3s ease;
-  
+
   .chat-sidebar-container.collapsed + & {
     left: 16px;
   }
-  
+
   .chat-sidebar-container:not(.collapsed) + & {
     left: 296px;
   }
@@ -462,10 +474,10 @@ onMounted(() => {
   padding: 4px 8px;
   border-radius: 4px;
   transition: background-color 0.2s ease;
-  
+
   &:hover {
     background-color: var(--td-bg-color-container-hover);
-    
+
     .edit-icon {
       opacity: 1;
     }
@@ -516,28 +528,28 @@ onMounted(() => {
     z-index: 100;
     height: 100%;
     box-shadow: var(--td-shadow-3);
-    
+
     &.collapsed {
       transform: translateX(-100%);
       width: 280px;
     }
   }
-  
+
   .sidebar-toggle {
     .chat-sidebar-container.collapsed + & {
       left: 16px;
     }
-    
+
     .chat-sidebar-container:not(.collapsed) + & {
       left: 16px;
       z-index: 101;
     }
   }
-  
+
   .header-left {
     margin-left: 48px;
   }
-  
+
   .chat-title {
     max-width: 200px;
   }

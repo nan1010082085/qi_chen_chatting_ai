@@ -4,6 +4,7 @@
  */
 
 import type { ChatSession } from '@/stores/chat'
+import { toRaw } from 'vue'
 
 /**
  * IndexedDB 数据库配置
@@ -39,13 +40,13 @@ class IndexedDBService {
         resolve(this.db)
       }
 
-      request.onupgradeneeded = (event) => {
+      request.onupgradeneeded = event => {
         const db = (event.target as IDBOpenDBRequest).result
-        
+
         // 创建对象存储
         if (!db.objectStoreNames.contains(STORE_NAME)) {
           const store = db.createObjectStore(STORE_NAME, { keyPath: 'id' })
-          
+
           // 创建索引
           store.createIndex('createdAt', 'createdAt', { unique: false })
           store.createIndex('updatedAt', 'updatedAt', { unique: false })
@@ -60,7 +61,7 @@ class IndexedDBService {
    */
   async getAllSessions(): Promise<ChatSession[]> {
     const db = await this.initDB()
-    
+
     return new Promise((resolve, reject) => {
       const transaction = db.transaction([STORE_NAME], 'readonly')
       const store = transaction.objectStore(STORE_NAME)
@@ -86,11 +87,11 @@ class IndexedDBService {
    */
   async saveSession(session: ChatSession): Promise<void> {
     const db = await this.initDB()
-    
+
     return new Promise((resolve, reject) => {
       const transaction = db.transaction([STORE_NAME], 'readwrite')
       const store = transaction.objectStore(STORE_NAME)
-      const request = store.put(session)
+      const request = store.put(toRaw(session))
 
       request.onerror = () => {
         reject(new Error('Failed to save session to IndexedDB'))
@@ -109,7 +110,7 @@ class IndexedDBService {
    */
   async deleteSession(sessionId: string): Promise<void> {
     const db = await this.initDB()
-    
+
     return new Promise((resolve, reject) => {
       const transaction = db.transaction([STORE_NAME], 'readwrite')
       const store = transaction.objectStore(STORE_NAME)
@@ -132,7 +133,7 @@ class IndexedDBService {
    */
   async getSession(sessionId: string): Promise<ChatSession | null> {
     const db = await this.initDB()
-    
+
     return new Promise((resolve, reject) => {
       const transaction = db.transaction([STORE_NAME], 'readonly')
       const store = transaction.objectStore(STORE_NAME)
@@ -154,7 +155,7 @@ class IndexedDBService {
    */
   async clearAll(): Promise<void> {
     const db = await this.initDB()
-    
+
     return new Promise((resolve, reject) => {
       const transaction = db.transaction([STORE_NAME], 'readwrite')
       const store = transaction.objectStore(STORE_NAME)

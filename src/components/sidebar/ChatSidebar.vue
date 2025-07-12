@@ -3,13 +3,7 @@
     <!-- 侧边栏头部 -->
     <div class="sidebar-header">
       <h3 class="sidebar-title">聊天历史</h3>
-      <t-button 
-        theme="primary" 
-        variant="outline" 
-        size="small" 
-        @click="createNewChat"
-        :disabled="chatStore.isLoading"
-      >
+      <t-button theme="primary" variant="outline" size="small" @click="createNewChat" :disabled="chatStore.isLoading">
         <template #icon><AddIcon /></template>
         新建对话
       </t-button>
@@ -20,10 +14,10 @@
       <div v-if="chatStore.sessions.length === 0" class="empty-state">
         <t-empty description="暂无聊天记录" />
       </div>
-      
+
       <div v-else class="session-list">
-        <div 
-          v-for="session in chatStore.sessions" 
+        <div
+          v-for="session in chatStore.sessions"
           :key="session.id"
           class="session-item"
           :class="{ active: session.id === chatStore.currentSessionId }"
@@ -38,20 +32,10 @@
               <span class="session-count">{{ session.messages.length }}条消息</span>
             </div>
           </div>
-          
+
           <div class="session-actions">
-            <t-dropdown 
-              :options="getSessionActions(session.id)" 
-              @click="handleSessionAction"
-              trigger="click"
-            >
-              <t-button 
-                theme="default" 
-                variant="text" 
-                size="small" 
-                shape="square"
-                @click.stop
-              >
+            <t-dropdown :options="getSessionActions(session.id)" @click="handleSessionAction" trigger="click">
+              <t-button theme="default" variant="text" size="small" shape="square" @click.stop>
                 <MoreIcon />
               </t-button>
             </t-dropdown>
@@ -71,8 +55,8 @@ import { AddIcon, MoreIcon } from 'tdesign-icons-vue-next'
 defineOptions({
   components: {
     AddIcon,
-    MoreIcon
-  }
+    MoreIcon,
+  },
 })
 
 /**
@@ -102,23 +86,23 @@ const chatStore = useChatStore()
 const formatTime = (timestamp: number): string => {
   const now = Date.now()
   const diff = now - timestamp
-  
+
   // 今天
   if (diff < 24 * 60 * 60 * 1000) {
     return DateTimeUtils.format(timestamp, 'HH:mm')
   }
-  
+
   // 昨天
   if (diff < 48 * 60 * 60 * 1000) {
     return '昨天'
   }
-  
+
   // 一周内
   if (diff < 7 * 24 * 60 * 60 * 1000) {
     const days = Math.floor(diff / (24 * 60 * 60 * 1000))
     return `${days}天前`
   }
-  
+
   // 超过一周
   return DateTimeUtils.format(timestamp, 'MM-DD')
 }
@@ -138,7 +122,7 @@ const createNewChat = () => {
  */
 const switchToSession = (sessionId: string) => {
   if (sessionId === chatStore.currentSessionId) return
-  
+
   chatStore.switchSession(sessionId)
   emit('session-changed', sessionId)
 }
@@ -151,7 +135,7 @@ const switchToSession = (sessionId: string) => {
 const getSessionActions = (sessionId: string) => {
   const session = chatStore.sessions.find(s => s.id === sessionId)
   const hasMessages = session && session.messages.length > 0
-  
+
   return [
     {
       content: '重命名',
@@ -177,16 +161,18 @@ const getSessionActions = (sessionId: string) => {
 const handleSessionAction = async (data: { value: string }) => {
   const parts = data.value.split('_')
   const action = parts[0]
-  
+  console.log(action, parts)
+
+  let id = parts.slice(1).join('_')
   if (action === 'rename') {
-    const sessionId = parts[1]
+    const sessionId = id
     await handleRenameSession(sessionId)
   } else if (action === 'delete') {
     if (parts[1] === 'messages') {
-      const sessionId = parts[2]
+      const sessionId = parts.slice(2).join('_')
       await handleDeleteMessages(sessionId)
     } else {
-      const sessionId = parts[1]
+      const sessionId = id
       await handleDeleteSession(sessionId)
     }
   }
@@ -199,11 +185,11 @@ const handleSessionAction = async (data: { value: string }) => {
 const handleRenameSession = async (sessionId: string) => {
   const session = chatStore.sessions.find(s => s.id === sessionId)
   if (!session) return
-  
+
   try {
     // 使用简单的prompt来获取新标题
     const newTitle = prompt('请输入新的对话标题:', session.title)
-    
+
     if (newTitle && newTitle.trim() && newTitle.trim() !== session.title) {
       const trimmedTitle = newTitle.trim()
       await chatStore.updateSessionTitle(sessionId, trimmedTitle)
@@ -219,25 +205,26 @@ const handleRenameSession = async (sessionId: string) => {
  * 删除会话中的所有消息
  * @param sessionId - 会话ID
  */
-const handleDeleteMessages = async (sessionId: string) => {
+const handleDeleteMessages = (sessionId: string) => {
   const session = chatStore.sessions.find(s => s.id === sessionId)
   if (!session || session.messages.length === 0) return
-  
+
   try {
-    await DialogPlugin.confirm({
+    const dialog = DialogPlugin.confirm({
       header: '删除消息',
       body: `确定要删除对话"${session.title}"中的所有消息吗？此操作不可恢复。`,
       confirmBtn: '删除',
       cancelBtn: '取消',
       theme: 'warning',
+      onConfirm: async () => {
+        // 删除会话中的所有消息
+        session.messages = []
+        session.updatedAt = Date.now()
+        await chatStore.saveSessionToDB(session)
+        MessagePlugin.success('消息已删除')
+        dialog.hide()
+      },
     })
-    
-    // 删除会话中的所有消息
-    session.messages = []
-    session.updatedAt = Date.now()
-    await chatStore.saveSessionToDB(session)
-    
-    MessagePlugin.success('消息已删除')
   } catch {
     // 用户取消操作
   }
@@ -247,26 +234,28 @@ const handleDeleteMessages = async (sessionId: string) => {
  * 删除会话
  * @param sessionId - 会话ID
  */
-const handleDeleteSession = async (sessionId: string) => {
+const handleDeleteSession = (sessionId: string) => {
   const session = chatStore.sessions.find(s => s.id === sessionId)
+
   if (!session) return
-  
+
   try {
-    await DialogPlugin.confirm({
+    const dialog = DialogPlugin.confirm({
       header: '删除对话',
       body: `确定要删除对话"${session.title}"吗？此操作不可恢复。`,
       confirmBtn: '删除',
       cancelBtn: '取消',
       theme: 'warning',
+      onConfirm: () => {
+        chatStore.deleteSession(sessionId)
+        MessagePlugin.success('对话已删除')
+        // 如果删除的是当前会话，切换到第一个会话
+        if (sessionId === chatStore.currentSessionId && chatStore.sessions.length > 0) {
+          emit('session-changed', chatStore.sessions[0].id)
+        }
+        dialog.hide()
+      },
     })
-    
-    chatStore.deleteSession(sessionId)
-    MessagePlugin.success('对话已删除')
-    
-    // 如果删除的是当前会话，切换到第一个会话
-    if (sessionId === chatStore.currentSessionId && chatStore.sessions.length > 0) {
-      emit('session-changed', chatStore.sessions[0].id)
-    }
   } catch {
     // 用户取消操作
   }
@@ -323,15 +312,15 @@ const handleDeleteSession = async (sessionId: string) => {
   cursor: pointer;
   transition: all 0.2s ease;
   border-left: 3px solid transparent;
-  
+
   &:hover {
     background: var(--td-bg-color-container-hover);
   }
-  
+
   &.active {
     background: var(--td-bg-color-container-active);
     border-left-color: var(--td-brand-color);
-    
+
     .session-title {
       color: var(--td-brand-color);
       font-weight: 500;
