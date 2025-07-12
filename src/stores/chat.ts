@@ -1,12 +1,14 @@
 import { defineStore } from 'pinia'
 import { ref, computed } from 'vue'
+import { indexedDBService } from '@/services/indexedDB'
 
 /**
  * 消息类型
  */
 export interface ChatMessage {
   id: string
-  content: string
+  content: string;
+  reasoning_content: string;
   role: 'user' | 'assistant' | 'system'
   timestamp: number
   status?: 'sending' | 'sent' | 'error'
@@ -49,7 +51,7 @@ export const useChatStore = defineStore('chat', () => {
    * @returns 会话ID
    */
   const createSession = (title: string = '新对话'): string => {
-    const sessionId = `session_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`
+    const sessionId = `session_${Date.now()}_${Math.random().toString(36).substring(2, 9)}`
     const newSession: ChatSession = {
       id: sessionId,
       title,
@@ -60,6 +62,10 @@ export const useChatStore = defineStore('chat', () => {
     
     sessions.value.unshift(newSession)
     currentSessionId.value = sessionId
+    
+    // 保存到IndexedDB
+    saveSessionToDB(newSession)
+    
     return sessionId
   }
 
@@ -85,6 +91,25 @@ export const useChatStore = defineStore('chat', () => {
       if (currentSessionId.value === sessionId) {
         currentSessionId.value = sessions.value.length > 0 ? sessions.value[0].id : null
       }
+      
+      // 从IndexedDB删除
+      deleteSessionFromDB(sessionId)
+    }
+  }
+
+  /**
+   * 更新会话标题
+   * @param sessionId - 会话ID
+   * @param newTitle - 新标题
+   */
+  const updateSessionTitle = async (sessionId: string, newTitle: string) => {
+    const session = sessions.value.find(s => s.id === sessionId)
+    if (session) {
+      session.title = newTitle
+      session.updatedAt = Date.now()
+      
+      // 保存到IndexedDB
+      await saveSessionToDB(session)
     }
   }
 
@@ -99,10 +124,11 @@ export const useChatStore = defineStore('chat', () => {
       createSession()
     }
 
-    const messageId = `msg_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`
+    const messageId = `msg_${Date.now()}_${Math.random().toString(36).substring(2, 9)}`
     const newMessage: ChatMessage = {
       id: messageId,
       content,
+      reasoning_content: '',
       role,
       timestamp: Date.now(),
       status: role === 'user' ? 'sending' : 'sent'
@@ -115,6 +141,9 @@ export const useChatStore = defineStore('chat', () => {
     if (role === 'user' && currentSession.value!.messages.length === 1) {
       currentSession.value!.title = content.slice(0, 20) + (content.length > 20 ? '...' : '')
     }
+
+    // 保存到IndexedDB
+    saveSessionToDB(currentSession.value!)
 
     return messageId
   }
@@ -134,6 +163,27 @@ export const useChatStore = defineStore('chat', () => {
       if (error) {
         message.error = error
       }
+      currentSession.value.updatedAt = Date.now()
+      
+      // 保存到IndexedDB
+      saveSessionToDB(currentSession.value)
+    }
+  }
+
+  /**
+   * 删除指定消息
+   * @param messageId - 消息ID
+   */
+  const deleteMessage = (messageId: string) => {
+    if (!currentSession.value) return
+    
+    const messageIndex = currentSession.value.messages.findIndex(m => m.id === messageId)
+    if (messageIndex > -1) {
+      currentSession.value.messages.splice(messageIndex, 1)
+      currentSession.value.updatedAt = Date.now()
+      
+      // 保存到IndexedDB
+      saveSessionToDB(currentSession.value)
     }
   }
 
@@ -144,6 +194,9 @@ export const useChatStore = defineStore('chat', () => {
     if (currentSession.value) {
       currentSession.value.messages = []
       currentSession.value.updatedAt = Date.now()
+      
+      // 保存到IndexedDB
+      saveSessionToDB(currentSession.value)
     }
   }
 
@@ -163,10 +216,71 @@ export const useChatStore = defineStore('chat', () => {
     error.value = errorMessage
   }
 
-  // 初始化默认会话
-  if (sessions.value.length === 0) {
-    createSession('欢迎使用AI聊天')
+  /**
+   * 更新消息的思考内容
+   * @param messageId - 消息ID
+   * @param reasoningContent - 思考内容
+   */
+  const updateMessageReasoning = (messageId: string, reasoningContent: string) => {
+    if (!currentSession.value) return
+    
+    const message = currentSession.value.messages.find(m => m.id === messageId)
+    if (message) {
+      message.reasoning_content = reasoningContent
+      currentSession.value.updatedAt = Date.now()
+      
+      // 保存到IndexedDB
+      saveSessionToDB(currentSession.value)
+    }
   }
+
+  /**
+   * 从IndexedDB加载历史会话
+   */
+  const loadSessionsFromDB = async () => {
+    try {
+      const savedSessions = await indexedDBService.getAllSessions()
+      if (savedSessions.length > 0) {
+        sessions.value = savedSessions
+        // 设置最新的会话为当前会话
+        currentSessionId.value = savedSessions[0].id
+      } else {
+        // 如果没有历史会话，创建默认会话
+        createSession('欢迎使用AI聊天')
+      }
+    } catch (error) {
+      console.error('Failed to load sessions from IndexedDB:', error)
+      // 如果加载失败，创建默认会话
+      createSession('欢迎使用AI聊天')
+    }
+  }
+
+  /**
+   * 保存会话到IndexedDB
+   * @param session - 要保存的会话
+   */
+  const saveSessionToDB = async (session: ChatSession) => {
+    try {
+      await indexedDBService.saveSession(session)
+    } catch (error) {
+      console.error('Failed to save session to IndexedDB:', error)
+    }
+  }
+
+  /**
+   * 从IndexedDB删除会话
+   * @param sessionId - 会话ID
+   */
+  const deleteSessionFromDB = async (sessionId: string) => {
+    try {
+      await indexedDBService.deleteSession(sessionId)
+    } catch (error) {
+      console.error('Failed to delete session from IndexedDB:', error)
+    }
+  }
+
+  // 初始化时加载历史会话
+  loadSessionsFromDB()
 
   return {
     // 状态
@@ -181,10 +295,16 @@ export const useChatStore = defineStore('chat', () => {
     createSession,
     switchSession,
     deleteSession,
+    updateSessionTitle,
     addMessage,
+    deleteMessage,
     updateMessageStatus,
+    updateMessageReasoning,
     clearCurrentSession,
     setLoading,
-    setError
+    setError,
+    loadSessionsFromDB,
+    saveSessionToDB,
+    deleteSessionFromDB
   }
 })

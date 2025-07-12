@@ -1,15 +1,21 @@
 import { createApp } from 'vue'
 import { createPinia } from 'pinia'
+import TDesign from 'tdesign-vue-next'
+import TDesignChat from '@tdesign-vue-next/chat'
+import NProgress from 'nprogress'
 import router from './router'
 import App from './App.vue'
-import NProgress from 'nprogress'
-import './styles/index.scss'
+import 'normalize.css'
+import 'nprogress/nprogress.css'
+import 'tdesign-vue-next/es/style/index.css'
+import './styles/index.less'
+import 'virtual:windi.css'
 
 // 配置 NProgress
 NProgress.configure({
   showSpinner: true,
   speed: 200,
-  minimum: 0.1
+  minimum: 0.1,
 })
 
 /**
@@ -19,10 +25,11 @@ NProgress.configure({
 function createVueApp() {
   const app = createApp(App)
   const pinia = createPinia()
-  
+
   app.use(pinia)
   app.use(router)
-  
+  app.use(TDesign).use(TDesignChat)
+
   return app
 }
 
@@ -52,9 +59,9 @@ if (window.__MICRO_APP_ENVIRONMENT__) {
   // micro-app环境下的生命周期
   ;(window as any)[`micro-app-${window.__MICRO_APP_NAME__}`] = {
     mount,
-    unmount
+    unmount,
   }
-  
+
   // 监听来自主应用的数据
   if (window.microApp) {
     window.microApp.addDataListener((data: any) => {

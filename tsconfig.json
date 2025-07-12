@@ -1,12 +1,20 @@
 {
   "extends": "@vue/tsconfig/tsconfig.dom.json",
-  "include": ["env.d.ts", "src/**/*.ts", "src/**/*.tsx", "src/**/*.vue"],
+  "include": [
+    "env.d.ts",
+    "tdesign-vue-next/global.d.ts",
+    "@tdesign-vue-next/chat/global.d.ts",
+    "src/**/*.ts",
+    "src/**/*.tsx",
+    "src/**/*.vue"
+  ],
   "exclude": ["node_modules", "dist", "tests/**/*"],
   "compilerOptions": {
     "composite": true,
     "baseUrl": ".",
     "paths": {
-      "@/*": ["src/*"]
+      "@/*": ["src/*"],
+      "components/*": ["src/components/*"]
     },
     "types": ["node"],
     // "strict": true,

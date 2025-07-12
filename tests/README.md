@@ -11,7 +11,7 @@ tests/
 │   ├── user.test.ts            # 用户状态管理测试
 │   └── chat.test.ts            # 聊天状态管理测试
 ├── services/                    # 服务层测试
-│   └── langchain.test.ts       # LangChain 服务测试
+│   └── deepseek.test.ts        # DeepSeek 服务测试
 ├── views/                       # 视图组件测试
 │   └── ChatView.test.ts        # 聊天视图测试
 ├── components/                  # 组件测试
@@ -128,7 +128,7 @@ it('应该正确设置用户信息', () => {
 **示例**:
 ```typescript
 it('应该正确发送消息', async () => {
-  const service = new LangChainService()
+  const service = new OpenAIService()
   service.updateConfig({ apiKey: 'test-key' })
   
   mockChatOpenAI.invoke.mockResolvedValue({ content: 'AI回复' })

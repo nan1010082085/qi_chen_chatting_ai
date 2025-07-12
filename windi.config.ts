@@ -1,11 +1,13 @@
 import { defineConfig } from 'windicss/helpers'
-import type { Config } from 'windicss/types/interfaces'
+import formsPlugin from 'windicss/plugin/forms'
+// import typographyPlugin from 'windicss/plugin/typography'
+import aspectRatioPlugin from 'windicss/plugin/aspect-ratio'
+import lineClampPlugin from 'windicss/plugin/line-clamp'
 
-/**
- * Windi CSS 配置文件
- * @see https://windicss.org/guide/configuration.html
- */
 export default defineConfig({
+  darkMode: 'class',
+  satisfies: '',
+  preflight: false,
   // 扫描文件路径
   extract: {
     include: [
@@ -129,59 +131,6 @@ export default defineConfig({
       borderRadius: {
         '4xl': '2rem',
         '5xl': '2.5rem'
-      },
-
-      // 自定义阴影
-      boxShadow: {
-        'soft': '0 2px 15px -3px rgba(0, 0, 0, 0.07), 0 10px 20px -2px rgba(0, 0, 0, 0.04)',
-        'medium': '0 4px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04)',
-        'hard': '0 10px 40px -10px rgba(0, 0, 0, 0.15), 0 20px 25px -5px rgba(0, 0, 0, 0.1)'
-      },
-
-      // 自定义动画
-      animation: {
-        'fade-in': 'fadeIn 0.3s ease-in-out',
-        'fade-out': 'fadeOut 0.3s ease-in-out',
-        'slide-up': 'slideUp 0.3s ease-out',
-        'slide-down': 'slideDown 0.3s ease-out',
-        'bounce-soft': 'bounceSoft 0.6s ease-in-out',
-        'pulse-soft': 'pulseSoft 2s infinite'
-      },
-
-      // 自定义关键帧
-      keyframes: {
-        fadeIn: {
-          '0%': { opacity: '0' },
-          '100%': { opacity: '1' }
-        },
-        fadeOut: {
-          '0%': { opacity: '1' },
-          '100%': { opacity: '0' }
-        },
-        slideUp: {
-          '0%': { transform: 'translateY(10px)', opacity: '0' },
-          '100%': { transform: 'translateY(0)', opacity: '1' }
-        },
-        slideDown: {
-          '0%': { transform: 'translateY(-10px)', opacity: '0' },
-          '100%': { transform: 'translateY(0)', opacity: '1' }
-        },
-        bounceSoft: {
-          '0%, 20%, 53%, 80%, 100%': { transform: 'translate3d(0,0,0)' },
-          '40%, 43%': { transform: 'translate3d(0, -8px, 0)' },
-          '70%': { transform: 'translate3d(0, -4px, 0)' },
-          '90%': { transform: 'translate3d(0, -2px, 0)' }
-        },
-        pulseSoft: {
-          '0%, 100%': { opacity: '1' },
-          '50%': { opacity: '0.7' }
-        }
-      },
-
-      // 自定义断点
-      screens: {
-        'xs': '475px',
-        '3xl': '1600px'
       }
     }
   },
@@ -189,13 +138,13 @@ export default defineConfig({
   // 插件配置
   plugins: [
     // 排版插件
-    require('windicss/plugin/typography'),
+    // typographyPlugin,
     // 表单插件
-    require('windicss/plugin/forms'),
+    formsPlugin,
     // 长宽比插件
-    require('windicss/plugin/aspect-ratio'),
+    aspectRatioPlugin,
     // 行高插件
-    require('windicss/plugin/line-clamp')
+    lineClampPlugin
   ],
 
   // 快捷方式
@@ -265,4 +214,4 @@ export default defineConfig({
       opacity: ['disabled']
     }
   }
-} as Config)
+})

@@ -1,18 +1,28 @@
 import { defineConfig } from 'vite'
 import vue from '@vitejs/plugin-vue'
 import WindiCSS from 'vite-plugin-windicss'
+import AutoImport from 'unplugin-auto-import/vite'
+import Components from 'unplugin-vue-components/vite'
+import { ElementPlusResolver } from 'unplugin-vue-components/resolvers'
 import cssnano from 'cssnano'
-import { resolve } from 'path'
+import { fileURLToPath } from 'node:url'
 
 // https://vitejs.dev/config/
 export default defineConfig({
   plugins: [
     vue(),
-    WindiCSS()
+    WindiCSS(),
+    AutoImport({
+      resolvers: [ElementPlusResolver()],
+    }),
+    Components({
+      resolvers: [ElementPlusResolver()],
+    }),
   ],
   resolve: {
     alias: {
-      '@': resolve(__dirname, 'src')
+      '@': fileURLToPath(new URL('./src', import.meta.url)),
+      'components': fileURLToPath(new URL('./src/components', import.meta.url)),
     }
   },
   server: {
@@ -32,16 +42,11 @@ export default defineConfig({
       ]
     },
     preprocessorOptions: {
-      scss: {
-        // 抑制弃用警告
-        quietDeps: true,
-        logger: {
-          warn: (message: string) => {
-            // 过滤掉 legacy-js-api 警告
-            if (!message.includes('legacy-js-api')) {
-              console.warn(message);
-            }
-          }
+      less: {
+        // Less 配置选项
+        javascriptEnabled: true,
+        modifyVars: {
+          // 可以在这里定义全局变量
         }
       }
     }

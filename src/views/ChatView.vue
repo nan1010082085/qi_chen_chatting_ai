@@ -1,523 +1,527 @@
 <template>
   <div class="chat-view">
-    <!-- 聊天头部 -->
-    <div class="chat-header">
-      <div class="header-left">
-        <h1 class="chat-title">AI 聊天助手</h1>
-        <span class="user-info" v-if="userStore.isLoggedIn">
-          欢迎，{{ userStore.userName }}
-        </span>
-      </div>
-      <div class="header-right">
-        <button 
-          class="btn btn-secondary" 
-          @click="clearChat"
-          :disabled="chatStore.isLoading"
-        >
-          清空对话
-        </button>
-      </div>
+    <!-- 左侧历史记录侧边栏 -->
+    <div class="chat-sidebar-container" :class="{ collapsed: sidebarCollapsed }">
+      <ChatSidebar @session-changed="onSessionChanged" />
     </div>
-
-    <!-- 聊天消息区域 -->
-    <div class="chat-messages" ref="messagesContainer">
-      <div 
-        v-for="message in chatStore.currentMessages" 
-        :key="message.id"
-        class="message-wrapper"
-        :class="`message-${message.role}`"
+    
+    <!-- 侧边栏切换按钮 -->
+    <div class="sidebar-toggle">
+      <t-button 
+        theme="default" 
+        variant="outline" 
+        size="small" 
+        shape="square"
+        @click="toggleSidebar"
       >
-        <div class="message-avatar">
-          <div class="avatar" :class="message.role">
-            {{ message.role === 'user' ? (userStore.userName.charAt(0) || 'U') : 'AI' }}
-          </div>
-        </div>
-        <div class="message-content">
-          <div class="message-text" v-html="formatMessage(message.content)"></div>
-          <div class="message-time">{{ formatTime(message.timestamp) }}</div>
-          <div v-if="message.status === 'error'" class="message-error">
-            发送失败: {{ message.error }}
-          </div>
-        </div>
-      </div>
-      
-      <!-- 加载指示器 -->
-      <div v-if="chatStore.isLoading" class="message-wrapper message-assistant">
-        <div class="message-avatar">
-          <div class="avatar assistant">
-            AI
-          </div>
-        </div>
-        <div class="message-content">
-          <div class="typing-indicator">
-            <span></span>
-            <span></span>
-            <span></span>
-          </div>
-        </div>
-      </div>
+        <template #icon>
+          <ViewListIcon v-if="sidebarCollapsed" />
+          <ChevronLeftIcon v-else />
+        </template>
+      </t-button>
     </div>
 
-    <!-- 输入区域 -->
-    <div class="chat-input">
-      <div class="input-wrapper">
-        <textarea
-          v-model="inputMessage"
-          class="message-input"
-          placeholder="输入您的问题..."
-          rows="1"
-          @keydown="handleKeyDown"
-          @input="adjustTextareaHeight"
-          ref="textareaRef"
-          :disabled="chatStore.isLoading"
-        ></textarea>
-        <button 
-          class="send-button"
-          @click="sendMessage"
-          :disabled="!inputMessage.trim() || chatStore.isLoading"
-        >
-          <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
-            <path d="M2.01 21L23 12 2.01 3 2 10l15 2-15 2z"/>
-          </svg>
-        </button>
+    <!-- 右侧聊天区域 -->
+    <div class="chat-main">
+      <!-- 聊天头部 -->
+      <t-header class="chat-header">
+        <div class="header-left">
+          <div class="chat-title-container">
+            <h1 v-if="!isEditingTitle" class="chat-title" @click="startEditTitle" :title="'点击编辑对话名称'">
+              {{ currentSessionTitle }}
+              <EditIcon class="edit-icon" />
+            </h1>
+            <div v-else class="title-edit-container">
+              <t-input 
+                v-model="editingTitleValue" 
+                @blur="saveTitle" 
+                @keyup.enter="saveTitle" 
+                @keyup.esc="cancelEditTitle"
+                class="title-input"
+                placeholder="输入对话名称"
+                autofocus
+              />
+              <div class="title-edit-actions">
+                <t-button size="small" theme="primary" @click="saveTitle">
+                  <CheckIcon />
+                </t-button>
+                <t-button size="small" theme="default" @click="cancelEditTitle">
+                  <CloseIcon />
+                </t-button>
+              </div>
+            </div>
+          </div>
+          <t-tag v-if="userStore.isLoggedIn" theme="success" size="small">
+            <UserIcon />
+            {{ userStore.userName }}
+          </t-tag>
+        </div>
+        <div class="header-right">
+          <t-button theme="danger" variant="outline" size="small" @click="clearChat" :disabled="chatStore.isLoading">
+            <template #icon><DeleteIcon /></template>
+            清空对话
+          </t-button>
+        </div>
+      </t-header>
+
+      <!-- 聊天消息区域 -->
+      <div class="chat-content">
+        <t-chat ref="TChatRef" class="pl-5 pr-5" :reverse="false" :data="chatStore.currentMessages">
+          <template #avatar>
+            <t-avatar size="large" shape="circle" image="https://tdesign.gtimg.com/site/chat-avatar.png" />
+          </template>
+          <template #name="{ item }">
+            {{ item.role === 'assistant' ? 'AI' : 'Me' }}
+          </template>
+          <template #datetime="{ item }">
+            {{ formatTime(item.timestamp) }}
+          </template>
+          <template #content="{ item, index }">
+            <LangContent :item="item" :index="index" />
+          </template>
+          <!-- </t-chat-item> -->
+          <template #footer>
+            <LangSender @select="onSenderSelect" @send="handleSender" />
+          </template>
+        </t-chat>
       </div>
-      
+
       <!-- 错误提示 -->
-      <div v-if="chatStore.error" class="error-message">
-        {{ chatStore.error }}
-      </div>
+      <t-alert v-if="chatStore.error" theme="error" :message="chatStore.error" :close="false" class="error-alert" />
     </div>
   </div>
 </template>
 
 <script setup lang="ts">
-  import { ref, nextTick, onMounted, watch } from 'vue'
-  import { useChatStore } from '@/stores/chat'
-  import { useUserStore } from '@/stores/user'
-  import { langChainService } from '@/services/langchain'
+import { ref, nextTick, onMounted, watch, computed } from 'vue'
+import { MessagePlugin, DialogPlugin } from 'tdesign-vue-next'
+import { useChatStore } from '@/stores/chat'
+import { useUserStore } from '@/stores/user'
+import { deepSeekService } from '@/services/deepseek'
+import { DateTimeUtils } from '@/utils'
+import { LangSender, LangContent, ChatSidebar } from '@/components'
+import { ViewListIcon, ChevronLeftIcon, UserIcon, DeleteIcon, EditIcon, CheckIcon, CloseIcon } from 'tdesign-icons-vue-next'
 
-  const chatStore = useChatStore()
-  const userStore = useUserStore()
-  
-  const inputMessage = ref('')
-  const messagesContainer = ref<HTMLElement>()
-  const textareaRef = ref<HTMLTextAreaElement>()
+defineOptions({
+  components: {
+    LangSender,
+    LangContent,
+    ChatSidebar,
+    ViewListIcon,
+    ChevronLeftIcon,
+    UserIcon,
+    DeleteIcon,
+    EditIcon,
+    CheckIcon,
+    CloseIcon,
+  },
+})
 
-  /**
-   * 格式化消息内容（支持简单的markdown）
-   * @param content - 消息内容
-   * @returns 格式化后的HTML
-   */
-  const formatMessage = (content: string): string => {
-    return content
-      .replace(/\n/g, '<br>')
-      .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
-      .replace(/\*(.*?)\*/g, '<em>$1</em>')
-      .replace(/`(.*?)`/g, '<code>$1</code>')
-  }
+const title = ref(import.meta.env.VITE_APP_TITLE)
 
-  /**
-   * 格式化时间
-   * @param timestamp - 时间戳
-   * @returns 格式化后的时间字符串
-   */
-  const formatTime = (timestamp: number): string => {
-    const date = new Date(timestamp)
-    return date.toLocaleTimeString('zh-CN', {
-      hour: '2-digit',
-      minute: '2-digit'
-    })
-  }
+const chatStore = useChatStore()
+const userStore = useUserStore()
 
-  /**
-   * 自动调整文本框高度
-   */
-  const adjustTextareaHeight = () => {
-    if (textareaRef.value) {
-      textareaRef.value.style.height = 'auto'
-      textareaRef.value.style.height = Math.min(textareaRef.value.scrollHeight, 120) + 'px'
+const inputMessage = ref('')
+const TChatRef = ref()
+
+// 选择模型
+const selectModel = ref()
+
+// 侧边栏状态
+const sidebarCollapsed = ref(false)
+
+// 标题编辑状态
+const isEditingTitle = ref(false)
+const editingTitleValue = ref('')
+
+/**
+ * 当前会话标题
+ */
+const currentSessionTitle = computed(() => {
+  return chatStore.currentSession?.title || title.value
+})
+
+/**
+ * 格式化时间
+ * @param timestamp - 时间戳
+ * @returns 格式化后的时间字符串
+ */
+const formatTime = (timestamp: number): string => {
+  const d = DateTimeUtils.format
+  return d(timestamp, 'YYYY-MM-DD HH:mm')
+}
+
+/**
+ * 滚动到底部
+ */
+const scrollToBottom = () => {
+  nextTick(() => {
+    if (TChatRef.value) {
+      TChatRef.value!.scrollToBottom()
     }
-  }
+  })
+}
 
-  /**
-   * 处理键盘事件
-   * @param event - 键盘事件
-   */
-  const handleKeyDown = (event: KeyboardEvent) => {
-    if (event.key === 'Enter' && !event.shiftKey) {
-      event.preventDefault()
-      sendMessage()
-    }
-  }
+/**
+ * 发送消息
+ */
+const sendMessage = async () => {
+  const message = inputMessage.value.trim()
+  if (!message || chatStore.isLoading) return
 
-  /**
-   * 滚动到底部
-   */
-  const scrollToBottom = () => {
-    nextTick(() => {
-      if (messagesContainer.value) {
-        messagesContainer.value.scrollTop = messagesContainer.value.scrollHeight
-      }
-    })
-  }
+  // 清空输入框
+  inputMessage.value = ''
 
-  /**
-   * 发送消息
-   */
-  const sendMessage = async () => {
-    const message = inputMessage.value.trim()
-    if (!message || chatStore.isLoading) return
+  // 添加用户消息
+  const userMessageId = chatStore.addMessage(message, 'user')
+  scrollToBottom()
+  chatStore.setLoading(true)
+  try {
+    chatStore.setLoading(true)
+    chatStore.setError(null)
 
-    // 清空输入框
-    inputMessage.value = ''
-    adjustTextareaHeight()
+    // 更新用户消息状态为已发送
+    chatStore.updateMessageStatus(userMessageId, 'sent')
 
-    // 添加用户消息
-    const userMessageId = chatStore.addMessage(message, 'user')
+    // 添加AI消息占位符
+    const aiMessageId = chatStore.addMessage('', 'assistant')
     scrollToBottom()
 
-    try {
-      chatStore.setLoading(true)
-      chatStore.setError(null)
+    // 获取消息历史（包括当前用户消息）
+    const messages = chatStore.currentMessages
 
-      // 更新用户消息状态为已发送
-      chatStore.updateMessageStatus(userMessageId, 'sent')
+    // 调用 DeepSeek 服务，包含思考过程回调
+    let aiResponse = ''
+    let fullReasoningContent = ''
 
-      // 添加AI消息占位符
-      const aiMessageId = chatStore.addMessage('', 'assistant')
-      scrollToBottom()
-
-      // 获取消息历史（包括当前用户消息）
-      const messages = chatStore.currentMessages
-
-      // 调用LangChain服务
-      let aiResponse = ''
-      await langChainService.sendMessage(
-        messages.slice(0, -1), // 排除AI占位符消息
-        (chunk: string) => {
-          // 流式更新AI回复
-          aiResponse += chunk
-          const aiMessage = chatStore.currentMessages.find(m => m.id === aiMessageId)
-          if (aiMessage) {
-            aiMessage.content = aiResponse
-          }
-          scrollToBottom()
-        }
-      )
-
-      // 如果没有流式回复，设置完整回复
-      if (!aiResponse) {
-        aiResponse = await langChainService.sendMessage(messages.slice(0, -1))
+    const result = await deepSeekService.sendMessage(
+      messages.slice(0, -1), // 排除AI占位符消息
+      (chunk: string) => {
+        console.log('接收内容块:', chunk)
+        // 流式更新AI回复
+        aiResponse += chunk
         const aiMessage = chatStore.currentMessages.find(m => m.id === aiMessageId)
         if (aiMessage) {
           aiMessage.content = aiResponse
         }
+        scrollToBottom()
+      },
+      (reasoning: string) => {
+        console.log('接收思考过程:', reasoning)
+        // 累积思考过程内容
+        fullReasoningContent += reasoning
+        // 实时更新消息的思考内容
+        chatStore.updateMessageReasoning(aiMessageId, fullReasoningContent)
+        scrollToBottom()
+      },
+    )
+
+    // 确保最终内容正确设置
+    const aiMessage = chatStore.currentMessages.find(m => m.id === aiMessageId)
+    if (aiMessage) {
+      // 设置最终的回复内容
+      aiMessage.content = result || aiResponse
+
+      // 设置最终的思考过程（如果有的话）
+      if (fullReasoningContent) {
+        // 使用流式累积的思考内容
+        chatStore.updateMessageReasoning(aiMessageId, fullReasoningContent)
       }
-
-      scrollToBottom()
-    } catch (error) {
-      console.error('Send message error:', error)
-      const errorMessage = error instanceof Error ? error.message : '发送消息失败'
-      chatStore.setError(errorMessage)
-      
-      // 更新用户消息状态为错误
-      chatStore.updateMessageStatus(userMessageId, 'error', errorMessage)
-    } finally {
-      chatStore.setLoading(false)
     }
-  }
 
-  /**
-   * 清空聊天记录
-   */
-  const clearChat = () => {
-    if (confirm('确定要清空当前对话吗？')) {
-      chatStore.clearCurrentSession()
-      chatStore.setError(null)
-    }
-  }
-
-  // 监听消息变化，自动滚动到底部
-  watch(
-    () => chatStore.currentMessages.length,
-    () => {
-      scrollToBottom()
-    }
-  )
-
-  onMounted(() => {
     scrollToBottom()
-    
-    // 检查LangChain配置
-    if (!langChainService.isConfigValid()) {
-      chatStore.setError('请配置OpenAI API Key')
-    }
+  } catch (error) {
+    console.error('Send message error:', error)
+    const errorMessage = error instanceof Error ? error.message : '发送消息失败'
+    chatStore.setError(errorMessage)
+    MessagePlugin.error(errorMessage)
+
+    // 更新用户消息状态为错误
+    chatStore.updateMessageStatus(userMessageId, 'error', errorMessage)
+  } finally {
+    chatStore.setLoading(false)
+  }
+}
+
+/**
+ * 清空聊天记录
+ */
+const clearChat = async () => {
+  try {
+    await DialogPlugin.confirm({
+      header: '确认清空',
+      body: '确定要清空当前对话吗？此操作不可恢复。',
+      confirmBtn: '确定',
+      cancelBtn: '取消',
+      theme: 'warning',
+    })
+    chatStore.clearCurrentSession()
+    chatStore.setError(null)
+    MessagePlugin.success('对话已清空')
+  } catch {
+    // 用户取消操作
+  }
+}
+
+/**
+ * 开始编辑标题
+ */
+const startEditTitle = () => {
+  if (!chatStore.currentSession) return
+  
+  isEditingTitle.value = true
+  editingTitleValue.value = chatStore.currentSession.title
+}
+
+/**
+ * 保存标题
+ */
+const saveTitle = async () => {
+  if (!chatStore.currentSession) return
+  
+  const newTitle = editingTitleValue.value.trim()
+  if (!newTitle) {
+    MessagePlugin.warning('对话名称不能为空')
+    return
+  }
+  
+  if (newTitle === chatStore.currentSession.title) {
+    // 标题没有变化，直接取消编辑
+    cancelEditTitle()
+    return
+  }
+  
+  try {
+    // 更新会话标题
+    await chatStore.updateSessionTitle(chatStore.currentSession.id, newTitle)
+    isEditingTitle.value = false
+    MessagePlugin.success('对话名称已更新')
+  } catch (error) {
+    console.error('更新标题失败:', error)
+    MessagePlugin.error('更新对话名称失败')
+  }
+}
+
+/**
+ * 取消编辑标题
+ */
+const cancelEditTitle = () => {
+  isEditingTitle.value = false
+  editingTitleValue.value = ''
+}
+
+const onSenderSelect = (data: { label: string; value: string }) => {
+  selectModel.value = data
+}
+
+const handleSender = (data: { content: string; isChecked: boolean; model: string }) => {
+  inputMessage.value = data.content
+  deepSeekService.updateConfig({
+    model: data.model,
+    enable_thinking: data.isChecked,
   })
+  sendMessage()
+}
+
+// 监听消息变化，自动滚动到底部
+watch(
+  () => chatStore.currentMessages.length,
+  () => {
+    scrollToBottom()
+  },
+)
+
+/**
+ * 切换侧边栏显示状态
+ */
+const toggleSidebar = () => {
+  sidebarCollapsed.value = !sidebarCollapsed.value
+}
+
+/**
+ * 处理会话切换
+ * @param sessionId - 会话ID
+ */
+const onSessionChanged = (sessionId: string) => {
+  // 会话已在store中切换，这里可以做一些额外处理
+  scrollToBottom()
+}
+
+onMounted(() => {
+  scrollToBottom()
+
+  // 检查 DeepSeek 配置
+  if (!deepSeekService.isConfigValid()) {
+    chatStore.setError('请配置DeepSeek API Key')
+    MessagePlugin.warning('请配置DeepSeek API Key')
+  }
+})
 </script>
 
-<style scoped>
-  .chat-view {
-    display: flex;
-    flex-direction: column;
-    height: 100vh;
-    background: #f5f5f5;
-  }
+<style lang="less" scoped>
+.chat-view {
+  display: flex;
+  height: 100%;
+  background: var(--td-bg-color-page);
+  position: relative;
+}
 
-  .chat-header {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    padding: 1rem 1.5rem;
-    background: white;
-    border-bottom: 1px solid #e0e0e0;
-    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+.chat-sidebar-container {
+  width: 280px;
+  height: 100%;
+  flex-shrink: 0;
+  transition: all 0.3s ease;
+  
+  &.collapsed {
+    width: 0;
+    overflow: hidden;
   }
+}
 
-  .header-left {
-    display: flex;
-    align-items: center;
-    gap: 1rem;
+.sidebar-toggle {
+  position: absolute;
+  top: 16px;
+  left: 16px;
+  z-index: 10;
+  transition: all 0.3s ease;
+  
+  .chat-sidebar-container.collapsed + & {
+    left: 16px;
   }
-
-  .chat-title {
-    margin: 0;
-    font-size: 1.25rem;
-    font-weight: 600;
-    color: #333;
+  
+  .chat-sidebar-container:not(.collapsed) + & {
+    left: 296px;
   }
+}
 
-  .user-info {
-    color: #666;
-    font-size: 0.875rem;
-  }
+.chat-main {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  min-width: 0;
+  height: 100%;
+}
 
-  .btn {
-    padding: 0.5rem 1rem;
-    border: none;
-    border-radius: 6px;
-    cursor: pointer;
-    font-size: 0.875rem;
-    transition: all 0.2s;
-  }
+.chat-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 16px 24px;
+  background: var(--td-bg-color-container);
+  border-bottom: 1px solid var(--td-border-level-1-color);
+  box-shadow: var(--td-shadow-1);
+  position: relative;
+  z-index: 1;
+}
 
-  .btn:disabled {
-    opacity: 0.5;
-    cursor: not-allowed;
-  }
+.header-left {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  margin-left: 48px; /* 为侧边栏切换按钮留出空间 */
+}
 
-  .btn-secondary {
-    background: #6c757d;
-    color: white;
-  }
+.chat-title-container {
+  display: flex;
+  align-items: center;
+  min-width: 0;
+}
 
-  .btn-secondary:hover:not(:disabled) {
-    background: #5a6268;
-  }
-
-  .chat-messages {
-    flex: 1;
-    overflow-y: auto;
-    padding: 1rem;
-    display: flex;
-    flex-direction: column;
-    gap: 1rem;
-  }
-
-  .message-wrapper {
-    display: flex;
-    gap: 0.75rem;
-    max-width: 80%;
-  }
-
-  .message-user {
-    align-self: flex-end;
-    flex-direction: row-reverse;
-  }
-
-  .message-assistant {
-    align-self: flex-start;
-  }
-
-  .message-avatar {
-    flex-shrink: 0;
-  }
-
-  .avatar {
-    width: 40px;
-    height: 40px;
-    border-radius: 50%;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-weight: 600;
-    font-size: 0.875rem;
-    color: white;
-  }
-
-  .avatar.user {
-    background: #007bff;
-  }
-
-  .avatar.assistant {
-    background: #28a745;
-  }
-
-  .message-content {
-    flex: 1;
-    min-width: 0;
-  }
-
-  .message-text {
-    background: white;
-    padding: 0.75rem 1rem;
-    border-radius: 12px;
-    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
-    line-height: 1.5;
-    word-wrap: break-word;
-  }
-
-  .message-user .message-text {
-    background: #007bff;
-    color: white;
-  }
-
-  .message-time {
-    font-size: 0.75rem;
-    color: #666;
-    margin-top: 0.25rem;
-    padding: 0 0.5rem;
-  }
-
-  .message-error {
-    font-size: 0.75rem;
-    color: #dc3545;
-    margin-top: 0.25rem;
-    padding: 0 0.5rem;
-  }
-
-  .typing-indicator {
-    display: flex;
-    gap: 4px;
-    padding: 1rem;
-    background: white;
-    border-radius: 12px;
-    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
-  }
-
-  .typing-indicator span {
-    width: 8px;
-    height: 8px;
-    border-radius: 50%;
-    background: #666;
-    animation: typing 1.4s infinite ease-in-out;
-  }
-
-  .typing-indicator span:nth-child(1) {
-    animation-delay: -0.32s;
-  }
-
-  .typing-indicator span:nth-child(2) {
-    animation-delay: -0.16s;
-  }
-
-  @keyframes typing {
-    0%, 80%, 100% {
-      transform: scale(0.8);
-      opacity: 0.5;
-    }
-    40% {
-      transform: scale(1);
+.chat-title {
+  margin: 0;
+  font-size: 20px;
+  font-weight: 600;
+  color: var(--td-text-color-primary);
+  max-width: 300px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 4px 8px;
+  border-radius: 4px;
+  transition: background-color 0.2s ease;
+  
+  &:hover {
+    background-color: var(--td-bg-color-container-hover);
+    
+    .edit-icon {
       opacity: 1;
     }
   }
+}
 
-  .chat-input {
-    padding: 1rem 1.5rem;
-    background: white;
-    border-top: 1px solid #e0e0e0;
+.edit-icon {
+  font-size: 16px;
+  color: var(--td-text-color-placeholder);
+  opacity: 0;
+  transition: opacity 0.2s ease;
+}
+
+.title-edit-container {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+}
+
+.title-input {
+  max-width: 300px;
+  min-width: 200px;
+}
+
+.title-edit-actions {
+  display: flex;
+  gap: 4px;
+  flex-shrink: 0;
+}
+
+.chat-content {
+  padding: 10px 0 0;
+  flex: 1;
+  overflow: hidden;
+}
+
+.error-alert {
+  margin: 16px;
+}
+
+/* 响应式设计 */
+@media (max-width: 768px) {
+  .chat-sidebar-container {
+    position: absolute;
+    top: 0;
+    left: 0;
+    z-index: 100;
+    height: 100%;
+    box-shadow: var(--td-shadow-3);
+    
+    &.collapsed {
+      transform: translateX(-100%);
+      width: 280px;
+    }
   }
-
-  .input-wrapper {
-    display: flex;
-    gap: 0.75rem;
-    align-items: flex-end;
-  }
-
-  .message-input {
-    flex: 1;
-    min-height: 44px;
-    max-height: 120px;
-    padding: 0.75rem 1rem;
-    border: 1px solid #ddd;
-    border-radius: 22px;
-    resize: none;
-    font-family: inherit;
-    font-size: 0.875rem;
-    line-height: 1.4;
-    outline: none;
-    transition: border-color 0.2s;
-  }
-
-  .message-input:focus {
-    border-color: #007bff;
-  }
-
-  .message-input:disabled {
-    background: #f8f9fa;
-    cursor: not-allowed;
-  }
-
-  .send-button {
-    width: 44px;
-    height: 44px;
-    border: none;
-    border-radius: 50%;
-    background: #007bff;
-    color: white;
-    cursor: pointer;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    transition: all 0.2s;
-    flex-shrink: 0;
-  }
-
-  .send-button:hover:not(:disabled) {
-    background: #0056b3;
-    transform: scale(1.05);
-  }
-
-  .send-button:disabled {
-    background: #ccc;
-    cursor: not-allowed;
-    transform: none;
-  }
-
-  .error-message {
-    margin-top: 0.5rem;
-    padding: 0.5rem 1rem;
-    background: #f8d7da;
-    color: #721c24;
-    border-radius: 6px;
-    font-size: 0.875rem;
-  }
-
-  /* 响应式设计 */
-  @media (max-width: 768px) {
-    .chat-header {
-      padding: 0.75rem 1rem;
+  
+  .sidebar-toggle {
+    .chat-sidebar-container.collapsed + & {
+      left: 16px;
     }
     
-    .chat-title {
-      font-size: 1.125rem;
-    }
-    
-    .message-wrapper {
-      max-width: 90%;
-    }
-    
-    .chat-input {
-      padding: 0.75rem 1rem;
+    .chat-sidebar-container:not(.collapsed) + & {
+      left: 16px;
+      z-index: 101;
     }
   }
+  
+  .header-left {
+    margin-left: 48px;
+  }
+  
+  .chat-title {
+    max-width: 200px;
+  }
+}
 </style>

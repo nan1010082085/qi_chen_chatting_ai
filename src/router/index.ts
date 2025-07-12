@@ -12,7 +12,7 @@ const routes: RouteRecordRaw[] = [
     name: 'Chat',
     component: ChatView,
     meta: {
-      title: 'AI聊天'
+      title: import.meta.env.VITE_APP_TITLE
     }
   },
   {
@@ -24,7 +24,7 @@ const routes: RouteRecordRaw[] = [
     name: 'Demo',
     component: UtilsDemo,
     meta: {
-      title: 'SCSS & UUID 演示'
+      title: 'Less & UUID 演示'
     }
   }
 ]

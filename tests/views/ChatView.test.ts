@@ -4,11 +4,11 @@ import { setActivePinia, createPinia } from 'pinia'
 import ChatView from '@/views/ChatView.vue'
 import { useChatStore } from '@/stores/chat'
 import { useUserStore } from '@/stores/user'
-import { LangChainService } from '@/services/langchain'
+import { OpenAIService } from '@/services/openai'
 
-// Mock LangChain service
-vi.mock('@/services/langchain', () => ({
-  LangChainService: vi.fn().mockImplementation(() => ({
+// Mock OpenAI service
+vi.mock('@/services/openai', () => ({
+  OpenAIService: vi.fn().mockImplementation(() => ({
     sendMessage: vi.fn(),
     isConfigValid: vi.fn().mockReturnValue(true),
     getConfig: vi.fn().mockReturnValue({
@@ -25,7 +25,7 @@ describe('ChatView', () => {
   let wrapper: VueWrapper<any>
   let chatStore: ReturnType<typeof useChatStore>
   let userStore: ReturnType<typeof useUserStore>
-  let mockLangChainService: any
+  let mockOpenAIService: any
 
   beforeEach(async () => {
     // 设置Pinia
@@ -42,9 +42,9 @@ describe('ChatView', () => {
       avatar: 'https://example.com/avatar.jpg'
     })
     
-    // 获取mock的LangChain服务
-    const { LangChainService } = await import('@/services/langchain')
-    mockLangChainService = new LangChainService()
+    // 获取mock的OpenAI服务
+    const { OpenAIService } = await import('@/services/openai')
+    mockOpenAIService = new OpenAIService()
     
     // 挂载组件
     wrapper = mount(ChatView, {
@@ -165,7 +165,7 @@ describe('ChatView', () => {
       await textarea.setValue('测试消息')
       
       // Mock sendMessage方法
-      mockLangChainService.sendMessage.mockResolvedValue('AI回复')
+      mockOpenAIService.sendMessage.mockResolvedValue('AI回复')
       
       await sendButton.trigger('click')
       
@@ -179,7 +179,7 @@ describe('ChatView', () => {
       await textarea.setValue('测试消息')
       
       // Mock sendMessage方法
-      mockLangChainService.sendMessage.mockResolvedValue('AI回复')
+      mockOpenAIService.sendMessage.mockResolvedValue('AI回复')
       
       await textarea.trigger('keydown', { key: 'Enter', ctrlKey: false, shiftKey: false })
       
@@ -237,7 +237,7 @@ describe('ChatView', () => {
       const sendButton = wrapper.find('.send-button')
       
       // Mock一个延迟的响应
-      mockLangChainService.sendMessage.mockImplementation(() => 
+      mockOpenAIService.sendMessage.mockImplementation(() => 
         new Promise(resolve => setTimeout(() => resolve('AI回复'), 100))
       )
       
@@ -254,7 +254,7 @@ describe('ChatView', () => {
       const sendButton = wrapper.find('.send-button')
       
       // Mock API错误
-      mockLangChainService.sendMessage.mockRejectedValue(new Error('API错误'))
+      mockOpenAIService.sendMessage.mockRejectedValue(new Error('API错误'))
       
       await textarea.setValue('测试消息')
       await sendButton.trigger('click')
@@ -272,7 +272,7 @@ describe('ChatView', () => {
       
       // Mock流式响应
       const mockOnChunk = vi.fn()
-      mockLangChainService.sendMessage.mockImplementation((messages, userMessage, onChunk) => {
+      mockOpenAIService.sendMessage.mockImplementation((messages, userMessage, onChunk) => {
         // 模拟流式响应
         onChunk('Hello')
         onChunk(' ')
@@ -328,7 +328,7 @@ describe('ChatView', () => {
   describe('配置验证', () => {
     it('配置无效时应该显示警告', async () => {
       // Mock配置无效
-      mockLangChainService.isConfigValid.mockReturnValue(false)
+      mockOpenAIService.isConfigValid.mockReturnValue(false)
       
       // 重新挂载组件
       wrapper.unmount()
