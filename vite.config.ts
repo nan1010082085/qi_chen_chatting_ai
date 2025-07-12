@@ -86,8 +86,6 @@ export default defineConfig({
         manualChunks: {
           // Vue 相关
           vue: ['vue', 'vue-router', 'pinia'],
-          // UI 组件库
-          tdesign: ['tdesign-vue-next', 'tdesign-icons-vue-next', '@tdesign-vue-next/chat'],
           // 工具库
           utils: ['lodash-es', 'dayjs', 'uuid', 'axios', 'clipboard', 'nprogress'],
           // 样式和CSS
