@@ -77,7 +77,7 @@
             {{ formatTime(item.timestamp) }}
           </template>
           <template #content="{ item, index }">
-            <LangContent :item="item" :index="index" />
+            <LangContent :item="item" :index="index" @message-click="onMessageClick" />
           </template>
           <!-- </t-chat-item> -->
           <template #footer>
@@ -95,7 +95,7 @@
 <script setup lang="ts">
 import { ref, nextTick, onMounted, watch, computed } from 'vue'
 import { MessagePlugin, DialogPlugin } from 'tdesign-vue-next'
-import { useChatStore } from '@/stores/chat'
+import { useChatStore, type ChatMessage } from '@/stores/chat'
 import { useUserStore } from '@/stores/user'
 import { deepSeekService } from '@/services/deepseek'
 import { DateTimeUtils } from '@/utils'
@@ -343,9 +343,27 @@ const toggleSidebar = () => {
  * 处理会话切换
  * @param sessionId - 会话ID
  */
-const onSessionChanged = (sessionId: string) => {
+const onSessionChanged = () => {
   // 会话已在store中切换，这里可以做一些额外处理
   scrollToBottom()
+}
+
+/**
+ * 处理消息点击事件
+ * @param message - 被点击的消息
+ * @param index - 消息索引
+ */
+const onMessageClick = (message: ChatMessage, index: number) => {
+  console.log('消息被点击:', message, '索引:', index)
+  
+  // 可以在这里添加更多的消息点击处理逻辑
+  // 比如：显示消息详情、编辑消息、回复消息等
+  
+  // 滚动到被点击的消息位置（可选）
+  scrollToBottom()
+  
+  // 显示消息信息（可选）
+  MessagePlugin.info(`点击了${message.role === 'user' ? '用户' : 'AI'}消息：${message.content.slice(0, 50)}${message.content.length > 50 ? '...' : ''}`)
 }
 
 onMounted(() => {

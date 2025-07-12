@@ -224,34 +224,7 @@ export function isMobileDevice(): boolean {
   return /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent)
 }
 
-/**
- * 复制文本到剪贴板
- * @param text 要复制的文本
- * @returns Promise<boolean> 是否复制成功
- */
-export async function copyToClipboard(text: string): Promise<boolean> {
-  try {
-    if (navigator.clipboard && window.isSecureContext) {
-      await navigator.clipboard.writeText(text)
-      return true
-    } else {
-      // 降级方案
-      const textArea = document.createElement('textarea')
-      textArea.value = text
-      textArea.style.position = 'fixed'
-      textArea.style.left = '-999999px'
-      textArea.style.top = '-999999px'
-      document.body.appendChild(textArea)
-      textArea.focus()
-      textArea.select()
-      const result = document.execCommand('copy')
-      document.body.removeChild(textArea)
-      return result
-    }
-  } catch {
-    return false
-  }
-}
+
 
 /**
  * 等待指定时间

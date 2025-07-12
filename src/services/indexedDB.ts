@@ -3,7 +3,7 @@
  * 用于存储聊天历史数据
  */
 
-import type { ChatSession, ChatMessage } from '@/stores/chat'
+import type { ChatSession } from '@/stores/chat'
 
 /**
  * IndexedDB 数据库配置
