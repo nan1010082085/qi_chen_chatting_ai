@@ -1,5 +1,5 @@
 <template>
-  <t-chat-sender
+  <TChatSender
     ref="chatSenderRef"
     v-model="inputValue"
     class="chat-sender"
@@ -30,7 +30,7 @@
         </t-button>
       </div>
     </template>
-  </t-chat-sender>
+  </TChatSender>
 </template>
 <script name="LangSender" setup lang="ts">
 import { ref } from 'vue'

@@ -46,7 +46,7 @@
   </div>
 </template>
 
-<script setup lang="ts">
+<script name="ChatSidebar" setup lang="ts">
 import { MessagePlugin, DialogPlugin, Input } from 'tdesign-vue-next'
 import { useChatStore } from '@/stores/chat'
 import { DateTimeUtils } from '@/utils'

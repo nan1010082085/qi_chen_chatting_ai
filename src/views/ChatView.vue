@@ -60,7 +60,7 @@
 
       <!-- 聊天消息区域 -->
       <div class="chat-content">
-        <t-chat ref="TChatRef" class="pl-5 pr-5" :reverse="false" :data="chatStore.currentMessages">
+        <TChat ref="TChatRef" class="pl-5 pr-5" :reverse="false" :data="chatStore.currentMessages">
           <template #avatar>
             <t-avatar size="large" shape="circle" image="https://tdesign.gtimg.com/site/chat-avatar.png" />
           </template>
@@ -76,7 +76,7 @@
           <template #footer>
             <LangSender @select="onSenderSelect" @send="handleSender" />
           </template>
-        </t-chat>
+        </TChat>
       </div>
 
       <!-- 错误提示 -->

@@ -8,11 +8,11 @@ export {}
 /* prettier-ignore */
 declare module 'vue' {
   export interface GlobalComponents {
-    ChatSidebar: typeof import('./src/components/sidebar/ChatSidebar.vue')['default']
     Content: typeof import('./src/components/content/index.vue')['default']
     RouterLink: typeof import('vue-router')['RouterLink']
     RouterView: typeof import('vue-router')['RouterView']
     Sender: typeof import('./src/components/sender/index.vue')['default']
+    Sidebar: typeof import('./src/components/sidebar/index.vue')['default']
     TAlert: typeof import('tdesign-vue-next')['Alert']
     TAvatar: typeof import('tdesign-vue-next')['Avatar']
     TButton: typeof import('tdesign-vue-next')['Button']
