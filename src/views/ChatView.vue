@@ -67,13 +67,12 @@
           <template #name="{ item }">
             {{ item.role === 'assistant' ? 'AI' : 'Me' }}
           </template>
-          <template #datetime="{ item }">
-            {{ formatTime(item.timestamp) }}
-          </template>
           <template #content="{ item, index }">
             <LangContent :item="item" :index="index" @message-click="onMessageClick" />
           </template>
-          <!-- </t-chat-item> -->
+          <template #datetime="{ item }">
+            {{ formatTime(item.timestamp) }}
+          </template>
           <template #footer>
             <LangSender @select="onSenderSelect" @send="handleSender" />
           </template>

@@ -78,6 +78,7 @@ const renderHeader = (flag: boolean, item: any) => {
   border-radius: 6px;
   padding: 4px;
   margin: -4px;
+  background-color: var(--td-bg-color-container);
 
   &:hover {
     background-color: var(--td-bg-color-container-hover);
@@ -91,13 +92,9 @@ const renderHeader = (flag: boolean, item: any) => {
   }
 
   ::v-deep(.t-chat__detail-reasoning) {
-    background-color: #ffffff;
     padding-top: 0;
     .t-collapse-panel {
       margin-left: 0;
-    }
-    div {
-      background-color: #ffffff !important;
     }
   }
 }

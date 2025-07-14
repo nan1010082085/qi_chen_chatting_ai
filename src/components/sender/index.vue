@@ -88,7 +88,7 @@ const inputEnter = function () {
 </script>
 <style lang="less" scoped>
 .chat-sender {
-  padding: 0.625rem 1.25rem;
+  padding: 0.625rem 0;
   .btn {
     color: var(--td-text-color-disabled);
     border: none;
