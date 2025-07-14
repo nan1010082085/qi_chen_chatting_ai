@@ -1,5 +1,5 @@
 <template>
-  <TChatSender
+  <ChatSender
     ref="chatSenderRef"
     v-model="inputValue"
     class="chat-sender"
@@ -30,11 +30,11 @@
         </t-button>
       </div>
     </template>
-  </TChatSender>
+  </ChatSender>
 </template>
 <script name="LangSender" setup lang="ts">
 import { ref } from 'vue'
-import { ChatSender as TChatSender } from '@tdesign-vue-next/chat'
+import { ChatSender } from '@tdesign-vue-next/chat'
 import { SystemSumIcon } from 'tdesign-icons-vue-next'
 const _emits = defineEmits(['select', 'send'])
 const loading = ref(false)

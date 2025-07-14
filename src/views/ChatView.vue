@@ -60,7 +60,7 @@
 
       <!-- 聊天消息区域 -->
       <div class="chat-content">
-        <TChat ref="TChatRef" class="pl-5 pr-5" :reverse="false" :data="chatStore.currentMessages">
+        <Chat ref="TChatRef" class="pl-5 pr-5" :reverse="false" :data="chatStore.currentMessages">
           <template #avatar>
             <t-avatar size="large" shape="circle" image="https://tdesign.gtimg.com/site/chat-avatar.png" />
           </template>
@@ -76,7 +76,7 @@
           <template #footer>
             <LangSender @select="onSenderSelect" @send="handleSender" />
           </template>
-        </TChat>
+        </Chat>
       </div>
 
       <!-- 错误提示 -->
@@ -93,7 +93,7 @@ import { useUserStore } from '@/stores/user'
 import { deepSeekService } from '@/services/deepseek'
 import { DateTimeUtils } from '@/utils'
 import { LangSender, LangContent, ChatSidebar } from '@/components'
-import { Chat as TChat } from '@tdesign-vue-next/chat'
+import { Chat } from '@tdesign-vue-next/chat'
 import {
   ViewListIcon,
   ChevronLeftIcon,
@@ -106,6 +106,7 @@ import {
 
 defineOptions({
   components: {
+    Chat,
     LangSender,
     LangContent,
     ChatSidebar,

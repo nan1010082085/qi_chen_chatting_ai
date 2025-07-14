@@ -1,8 +1,8 @@
 <template>
   <div class="message-content-wrapper">
-    <TChatContent v-if="item.status === 'error'" :content="item.error"> </TChatContent>
+    <ChatContent v-if="item.status === 'error'" :content="item.error"> </ChatContent>
     <!-- @ts-ignore -->
-    <TChatReasoning
+    <ChatReasoning
       v-if="item.role === 'assistant'"
       expand-icon-placement="right"
       :collapse-panel-props="{
@@ -11,15 +11,22 @@
       }"
       @expand-change="handleReasoningChange($event, { index })"
     >
-    </TChatReasoning>
-    <TChatContent v-if="item.content.length > 0" :content="item.content"> </TChatContent>
+    </ChatReasoning>
+    <ChatContent v-if="item.content.length > 0" :content="item.content"> </ChatContent>
   </div>
 </template>
 <script name="LangContent" setup lang="ts">
 import { computed, h } from 'vue'
 import { useChatStore, type ChatMessage } from '@/stores/chat'
-import { ChatContent as TChatContent, ChatReasoning as TChatReasoning, ChatLoading } from '@tdesign-vue-next/chat'
+import { ChatContent, ChatReasoning, ChatLoading } from '@tdesign-vue-next/chat'
 import { CheckCircleIcon } from 'tdesign-icons-vue-next'
+
+defineOptions({
+  components: {
+    ChatContent,
+    ChatReasoning,
+  }
+})
 
 /**
  * 组件属性
@@ -51,7 +58,7 @@ const handleReasoningChange = (value: any, { index }: any) => {
   console.log('handleChange', value, index)
 }
 const renderReasoningContent = (reasoningContent: string) => {
-  return h(TChatContent, { content: reasoningContent, role: 'assistant' })
+  return h(ChatContent, { content: reasoningContent, role: 'assistant' })
 }
 const renderHeader = (flag: boolean, item: any) => {
   if (flag) {
@@ -62,8 +69,8 @@ const renderHeader = (flag: boolean, item: any) => {
     h(CheckCircleIcon, {
       style: {
         color: 'var(--td-success-color-5)',
-        fontSize: '20px',
-        marginRight: '8px',
+        fontSize: '1.25rem',
+        marginRight: '.5rem',
       },
     }),
     h('span', {}, endText),
@@ -75,20 +82,20 @@ const renderHeader = (flag: boolean, item: any) => {
 .message-content-wrapper {
   cursor: pointer;
   transition: all 0.2s ease;
-  border-radius: 6px;
-  padding: 4px;
-  margin: -4px;
+  border-radius: .375rem;
+  padding: .25rem;
+  margin: -0.25rem;
   background-color: var(--td-bg-color-container);
 
   &:hover {
     background-color: var(--td-bg-color-container-hover);
-    transform: translateY(-1px);
-    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+    transform: translateY(-0.0625rem);
+    box-shadow: 0 .125rem .5rem rgba(0, 0, 0, 0.1);
   }
 
   &:active {
     transform: translateY(0);
-    box-shadow: 0 1px 4px rgba(0, 0, 0, 0.1);
+    box-shadow: 0 .0625rem .25rem rgba(0, 0, 0, 0.1);
   }
 
   ::v-deep(.t-chat__detail-reasoning) {
