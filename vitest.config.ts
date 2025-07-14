@@ -11,6 +11,8 @@ export default defineConfig({
   resolve: {
     alias: {
       '@': resolve(__dirname, 'src'),
+      '@tdesign-vue-next/chat': resolve(__dirname, 'tests/mocks/tdesign-chat.ts'),
+      'tdesign-icons-vue-next': resolve(__dirname, 'tests/mocks/tdesign-icons.ts'),
     },
   },
   server: {
@@ -24,11 +26,6 @@ export default defineConfig({
 
     // 全局测试设置
     globals: true,
-
-    // 依赖优化
-    deps: {
-      // inline: ['@tdesign-vue-next/chat'],
-    },
 
     // 包含的测试文件
     include: [
@@ -68,6 +65,15 @@ export default defineConfig({
 
     // 设置文件
     setupFiles: ['./tests/setup.ts'],
+
+    // 依赖优化配置
+    deps: {
+      optimizer: {
+        web: {
+          include: ['@tdesign-vue-next/chat', 'tdesign-icons-vue-next'],
+        },
+      },
+    },
   },
 
   // 定义全局变量
