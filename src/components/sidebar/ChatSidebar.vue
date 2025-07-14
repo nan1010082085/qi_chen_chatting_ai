@@ -47,10 +47,11 @@
 </template>
 
 <script setup lang="ts">
-import { MessagePlugin, DialogPlugin } from 'tdesign-vue-next'
+import { MessagePlugin, DialogPlugin, Input } from 'tdesign-vue-next'
 import { useChatStore } from '@/stores/chat'
 import { DateTimeUtils } from '@/utils'
 import { AddIcon, MoreIcon } from 'tdesign-icons-vue-next'
+import { h, ref } from 'vue'
 
 defineOptions({
   components: {
@@ -187,14 +188,62 @@ const handleRenameSession = async (sessionId: string) => {
   if (!session) return
 
   try {
-    // 使用简单的prompt来获取新标题
-    const newTitle = prompt('请输入新的对话标题:', session.title)
-
-    if (newTitle && newTitle.trim() && newTitle.trim() !== session.title) {
-      const trimmedTitle = newTitle.trim()
-      await chatStore.updateSessionTitle(sessionId, trimmedTitle)
-      MessagePlugin.success('重命名成功')
+    const inputValue = ref(session.title)
+    
+    /**
+     * 处理确认操作
+     */
+    const handleConfirm = async () => {
+      if (inputValue.value && inputValue.value.trim() && inputValue.value.trim() !== session.title) {
+        const trimmedTitle = inputValue.value.trim()
+        await chatStore.updateSessionTitle(sessionId, trimmedTitle)
+        MessagePlugin.success('重命名成功')
+        dialog.hide()
+      } else {
+        MessagePlugin.warning('请输入有效的对话标题')
+      }
     }
+    
+    // 使用TDesign的DialogPlugin自定义内容块
+    const dialog = DialogPlugin({
+      header: '重命名对话',
+      width: 480,
+      confirmBtn: {
+        content: '确定',
+        theme: 'primary',
+      },
+      cancelBtn: {
+        content: '取消',
+        theme: 'default',
+      },
+      body: () => {
+        return h('div', { style: 'padding: 16px 0;' }, [
+          h('div', { 
+            style: 'margin-bottom: 8px; color: var(--td-text-color-secondary); font-size: 14px;' 
+          }, '请输入新的对话标题'),
+          h(Input, {
+            modelValue: inputValue.value,
+            'onUpdate:modelValue': (value: string) => { inputValue.value = value },
+            placeholder: '请输入对话标题',
+            maxlength: 50,
+            showLimitNumber: true,
+            clearable: true,
+            autofocus: true,
+            onEnter: () => {
+              if (inputValue.value && inputValue.value.trim() && inputValue.value.trim() !== session.title) {
+                handleConfirm()
+              }
+            }
+          })
+        ])
+      },
+      onConfirm: () => {
+        handleConfirm()
+      },
+      onCancel: () => {
+        dialog.hide()
+      },
+    })
   } catch (error) {
     console.error('重命名失败:', error)
     MessagePlugin.error('重命名失败')
@@ -212,16 +261,52 @@ const handleDeleteMessages = (sessionId: string) => {
   try {
     const dialog = DialogPlugin.confirm({
       header: '删除消息',
-      body: `确定要删除对话"${session.title}"中的所有消息吗？此操作不可恢复。`,
-      confirmBtn: '删除',
-      cancelBtn: '取消',
       theme: 'warning',
+      width: 480,
+      confirmBtn: {
+        content: '删除',
+        theme: 'warning',
+      },
+      cancelBtn: {
+        content: '取消',
+        theme: 'default',
+      },
+      body: () => {
+        return h('div', { style: 'padding: 16px 0;' }, [
+          h('div', { 
+            style: 'display: flex; align-items: center; margin-bottom: 12px;' 
+          }, [
+            h('t-icon', {
+              name: 'error-circle',
+              size: '20px',
+              style: 'color: var(--td-warning-color); margin-right: 8px;'
+            }),
+            h('span', {
+              style: 'font-weight: 500; color: var(--td-text-color-primary);'
+            }, '确认删除消息')
+          ]),
+          h('div', {
+            style: 'color: var(--td-text-color-secondary); line-height: 1.5;'
+          }, [
+            `确定要删除对话 `,
+            h('strong', {}, `"${session.title}"`),
+            ` 中的所有消息吗？`,
+            h('br'),
+            h('span', {
+              style: 'color: var(--td-warning-color);'
+            }, '此操作不可恢复。')
+          ])
+        ])
+      },
       onConfirm: async () => {
         // 删除会话中的所有消息
         session.messages = []
         session.updatedAt = Date.now()
         await chatStore.saveSessionToDB(session)
         MessagePlugin.success('消息已删除')
+        dialog.hide()
+      },
+      onCancel: () => {
         dialog.hide()
       },
     })
@@ -242,10 +327,54 @@ const handleDeleteSession = (sessionId: string) => {
   try {
     const dialog = DialogPlugin.confirm({
       header: '删除对话',
-      body: `确定要删除对话"${session.title}"吗？此操作不可恢复。`,
-      confirmBtn: '删除',
-      cancelBtn: '取消',
       theme: 'warning',
+      width: 480,
+      confirmBtn: {
+        content: '删除',
+        theme: 'danger',
+      },
+      cancelBtn: {
+        content: '取消',
+        theme: 'default',
+      },
+      body: () => {
+        const bodyElements = [
+          h('div', { 
+            style: 'display: flex; align-items: center; margin-bottom: 12px;' 
+          }, [
+            h('t-icon', {
+              name: 'delete',
+              size: '20px',
+              style: 'color: var(--td-error-color); margin-right: 8px;'
+            }),
+            h('span', {
+              style: 'font-weight: 500; color: var(--td-text-color-primary);'
+            }, '确认删除对话')
+          ]),
+          h('div', {
+            style: 'color: var(--td-text-color-secondary); line-height: 1.5;'
+          }, [
+            `确定要删除对话 `,
+            h('strong', {}, `"${session.title}"`),
+            ` 吗？`,
+            h('br'),
+            h('span', {
+              style: 'color: var(--td-error-color);'
+            }, '此操作不可恢复，包括其中的所有消息记录。')
+          ])
+        ]
+        
+        // 如果有消息，显示消息数量提示
+        if (session.messages.length > 0) {
+          bodyElements.push(
+            h('div', {
+              style: 'margin-top: 12px; padding: 8px 12px; background: var(--td-bg-color-container-select); border-radius: 4px; font-size: 12px; color: var(--td-text-color-placeholder);'
+            }, `该对话包含 ${session.messages.length} 条消息`)
+          )
+        }
+        
+        return h('div', { style: 'padding: 16px 0;' }, bodyElements)
+      },
       onConfirm: () => {
         chatStore.deleteSession(sessionId)
         MessagePlugin.success('对话已删除')
@@ -253,6 +382,9 @@ const handleDeleteSession = (sessionId: string) => {
         if (sessionId === chatStore.currentSessionId && chatStore.sessions.length > 0) {
           emit('session-changed', chatStore.sessions[0].id)
         }
+        dialog.hide()
+      },
+      onCancel: () => {
         dialog.hide()
       },
     })
