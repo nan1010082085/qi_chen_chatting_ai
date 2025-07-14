@@ -159,7 +159,7 @@ const getSessionActions = (sessionId: string) => {
  * 处理会话操作
  * @param data - 操作数据
  */
-const handleSessionAction = async (data: { value: string }) => {
+const handleSessionAction = (data: { value: string }) => {
   const parts = data.value.split('_')
   const action = parts[0]
   console.log(action, parts)
@@ -167,14 +167,14 @@ const handleSessionAction = async (data: { value: string }) => {
   let id = parts.slice(1).join('_')
   if (action === 'rename') {
     const sessionId = id
-    await handleRenameSession(sessionId)
+    handleRenameSession(sessionId)
   } else if (action === 'delete') {
     if (parts[1] === 'messages') {
       const sessionId = parts.slice(2).join('_')
-      await handleDeleteMessages(sessionId)
+      handleDeleteMessages(sessionId)
     } else {
       const sessionId = id
-      await handleDeleteSession(sessionId)
+      handleDeleteSession(sessionId)
     }
   }
 }
@@ -189,7 +189,7 @@ const handleRenameSession = async (sessionId: string) => {
 
   try {
     const inputValue = ref(session.title)
-    
+
     /**
      * 处理确认操作
      */
@@ -203,7 +203,7 @@ const handleRenameSession = async (sessionId: string) => {
         MessagePlugin.warning('请输入有效的对话标题')
       }
     }
-    
+
     // 使用TDesign的DialogPlugin自定义内容块
     const dialog = DialogPlugin({
       header: '重命名对话',
@@ -218,12 +218,18 @@ const handleRenameSession = async (sessionId: string) => {
       },
       body: () => {
         return h('div', { style: 'padding: 16px 0;' }, [
-          h('div', { 
-            style: 'margin-bottom: 8px; color: var(--td-text-color-secondary); font-size: 14px;' 
-          }, '请输入新的对话标题'),
+          h(
+            'div',
+            {
+              style: 'margin-bottom: 8px; color: var(--td-text-color-secondary); font-size: 14px;',
+            },
+            '请输入新的对话标题',
+          ),
           h(Input, {
             modelValue: inputValue.value,
-            'onUpdate:modelValue': (value: string) => { inputValue.value = value },
+            'onUpdate:modelValue': (value: string) => {
+              inputValue.value = value
+            },
             placeholder: '请输入对话标题',
             maxlength: 50,
             showLimitNumber: true,
@@ -233,8 +239,8 @@ const handleRenameSession = async (sessionId: string) => {
               if (inputValue.value && inputValue.value.trim() && inputValue.value.trim() !== session.title) {
                 handleConfirm()
               }
-            }
-          })
+            },
+          }),
         ])
       },
       onConfirm: () => {
@@ -273,29 +279,45 @@ const handleDeleteMessages = (sessionId: string) => {
       },
       body: () => {
         return h('div', { style: 'padding: 16px 0;' }, [
-          h('div', { 
-            style: 'display: flex; align-items: center; margin-bottom: 12px;' 
-          }, [
-            h('t-icon', {
-              name: 'error-circle',
-              size: '20px',
-              style: 'color: var(--td-warning-color); margin-right: 8px;'
-            }),
-            h('span', {
-              style: 'font-weight: 500; color: var(--td-text-color-primary);'
-            }, '确认删除消息')
-          ]),
-          h('div', {
-            style: 'color: var(--td-text-color-secondary); line-height: 1.5;'
-          }, [
-            `确定要删除对话 `,
-            h('strong', {}, `"${session.title}"`),
-            ` 中的所有消息吗？`,
-            h('br'),
-            h('span', {
-              style: 'color: var(--td-warning-color);'
-            }, '此操作不可恢复。')
-          ])
+          h(
+            'div',
+            {
+              style: 'display: flex; align-items: center; margin-bottom: 12px;',
+            },
+            [
+              h('t-icon', {
+                name: 'error-circle',
+                size: '20px',
+                style: 'color: var(--td-warning-color); margin-right: 8px;',
+              }),
+              h(
+                'span',
+                {
+                  style: 'font-weight: 500; color: var(--td-text-color-primary);',
+                },
+                '确认删除消息',
+              ),
+            ],
+          ),
+          h(
+            'div',
+            {
+              style: 'color: var(--td-text-color-secondary); line-height: 1.5;',
+            },
+            [
+              `确定要删除对话 `,
+              h('strong', {}, `"${session.title}"`),
+              ` 中的所有消息吗？`,
+              h('br'),
+              h(
+                'span',
+                {
+                  style: 'color: var(--td-warning-color);',
+                },
+                '此操作不可恢复。',
+              ),
+            ],
+          ),
         ])
       },
       onConfirm: async () => {
@@ -339,40 +361,61 @@ const handleDeleteSession = (sessionId: string) => {
       },
       body: () => {
         const bodyElements = [
-          h('div', { 
-            style: 'display: flex; align-items: center; margin-bottom: 12px;' 
-          }, [
-            h('t-icon', {
-              name: 'delete',
-              size: '20px',
-              style: 'color: var(--td-error-color); margin-right: 8px;'
-            }),
-            h('span', {
-              style: 'font-weight: 500; color: var(--td-text-color-primary);'
-            }, '确认删除对话')
-          ]),
-          h('div', {
-            style: 'color: var(--td-text-color-secondary); line-height: 1.5;'
-          }, [
-            `确定要删除对话 `,
-            h('strong', {}, `"${session.title}"`),
-            ` 吗？`,
-            h('br'),
-            h('span', {
-              style: 'color: var(--td-error-color);'
-            }, '此操作不可恢复，包括其中的所有消息记录。')
-          ])
+          h(
+            'div',
+            {
+              style: 'display: flex; align-items: center; margin-bottom: 12px;',
+            },
+            [
+              h('t-icon', {
+                name: 'delete',
+                size: '20px',
+                style: 'color: var(--td-error-color); margin-right: 8px;',
+              }),
+              h(
+                'span',
+                {
+                  style: 'font-weight: 500; color: var(--td-text-color-primary);',
+                },
+                '确认删除对话',
+              ),
+            ],
+          ),
+          h(
+            'div',
+            {
+              style: 'color: var(--td-text-color-secondary); line-height: 1.5;',
+            },
+            [
+              `确定要删除对话 `,
+              h('strong', {}, `"${session.title}"`),
+              ` 吗？`,
+              h('br'),
+              h(
+                'span',
+                {
+                  style: 'color: var(--td-error-color);',
+                },
+                '此操作不可恢复，包括其中的所有消息记录。',
+              ),
+            ],
+          ),
         ]
-        
+
         // 如果有消息，显示消息数量提示
         if (session.messages.length > 0) {
           bodyElements.push(
-            h('div', {
-              style: 'margin-top: 12px; padding: 8px 12px; background: var(--td-bg-color-container-select); border-radius: 4px; font-size: 12px; color: var(--td-text-color-placeholder);'
-            }, `该对话包含 ${session.messages.length} 条消息`)
+            h(
+              'div',
+              {
+                style:
+                  'margin-top: 12px; padding: 8px 12px; background: var(--td-bg-color-container-select); border-radius: 4px; font-size: 12px; color: var(--td-text-color-placeholder);',
+              },
+              `该对话包含 ${session.messages.length} 条消息`,
+            ),
           )
         }
-        
+
         return h('div', { style: 'padding: 16px 0;' }, bodyElements)
       },
       onConfirm: () => {
