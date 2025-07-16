@@ -7,7 +7,7 @@ import 'normalize.css'
 import 'nprogress/nprogress.css'
 import 'tdesign-vue-next/es/style/index.css'
 import './styles/index.less'
-import 'virtual:windi.css'
+import 'virtual:uno.css'
 
 // 配置 NProgress
 NProgress.configure({

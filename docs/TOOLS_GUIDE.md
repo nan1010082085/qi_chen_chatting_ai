@@ -2,15 +2,15 @@
 
 本项目集成了三个强大的工具库，用于提升开发效率和代码质量：
 
-- **Windi CSS** - 原子化 CSS 框架
+- **UnoCSS** - 原子化 CSS 框架
 - **Day.js** - 轻量级时间处理库
 - **Lodash** - JavaScript 实用工具库
 
-## 🎨 Windi CSS 原子化样式
+## 🎨 UnoCSS 原子化样式
 
 ### 配置文件
 
-- `windi.config.ts` - Windi CSS 主配置文件
+- `uno.config.ts` - UnoCSS 主配置文件
 - `vite.config.ts` - Vite 插件配置
 - `src/main.ts` - 样式导入
 
@@ -109,7 +109,7 @@ error: { 50: '#fef2f2', 500: '#ef4444', 900: '#7f1d1d' }
     <main class="max-w-4xl mx-auto p-6">
       <div class="card-hover p-6 mb-6">
         <h2 class="text-2xl font-bold mb-4">欢迎使用</h2>
-        <p class="text-muted mb-4">这是一个使用 Windi CSS 构建的现代化界面。</p>
+        <p class="text-muted mb-4">这是一个使用 UnoCSS 构建的现代化界面。</p>
         <button class="btn-primary">开始使用</button>
       </div>
     </main>
@@ -677,7 +677,7 @@ export const validatePhone = (phone: string) => {
 
 ## 🔗 相关链接
 
-- [Windi CSS 官方文档](https://windicss.org/)
+- [UnoCSS 官方文档](https://unocss.dev/)
 - [Day.js 官方文档](https://dayjs.gitee.io/)
 - [Lodash 官方文档](https://lodash.com/)
 - [项目示例页面](../src/examples/utils-demo.vue)

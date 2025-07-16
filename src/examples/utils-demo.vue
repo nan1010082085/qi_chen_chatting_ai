@@ -1,8 +1,8 @@
 <template>
   <div class="p-6 max-w-4xl mx-auto space-y-8">
-    <!-- Windi CSS 样式演示 -->
+    <!-- UnoCSS 样式演示 -->
     <section class="card-base p-6">
-      <h2 class="text-2xl font-bold text-gradient mb-4">Windi CSS 样式演示</h2>
+      <h2 class="text-2xl font-bold text-gradient mb-4">UnoCSS 样式演示</h2>
       
       <!-- 按钮组 -->
       <div class="flex-between mb-6">
@@ -38,7 +38,7 @@
         </div>
         <div class="card-hover p-4">
           <h3 class="font-semibold text-success-600 mb-2">卡片标题 2</h3>
-          <p class="text-muted">展示了 Windi CSS 的强大功能。</p>
+          <p class="text-muted">展示了 UnoCSS 的强大功能。</p>
         </div>
         <div class="card-hover p-4">
           <h3 class="font-semibold text-warning-600 mb-2">卡片标题 3</h3>

@@ -1,6 +1,6 @@
 import { defineConfig } from 'vite'
 import vue from '@vitejs/plugin-vue'
-import WindiCSS from 'vite-plugin-windicss'
+import UnoCSS from 'unocss/vite'
 import AutoImport from 'unplugin-auto-import/vite'
 import Components from 'unplugin-vue-components/vite'
 import { TDesignResolver } from 'unplugin-vue-components/resolvers'
@@ -11,7 +11,7 @@ import { fileURLToPath } from 'node:url'
 export default defineConfig({
   plugins: [
     vue(),
-    WindiCSS(),
+    UnoCSS(),
     AutoImport({
       resolvers: [TDesignResolver({ library: 'vue-next' })],
     }),
@@ -89,7 +89,7 @@ export default defineConfig({
           // 工具库
           utils: ['lodash-es', 'dayjs', 'uuid', 'axios', 'clipboard', 'nprogress'],
           // 样式和CSS
-          styles: ['normalize.css', 'windicss'],
+          styles: ['normalize.css'],
         },
       },
     },

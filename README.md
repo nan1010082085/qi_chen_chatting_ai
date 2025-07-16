@@ -115,7 +115,7 @@ src/
 
 - **Vue 3** + **TypeScript** + **Vite** - 现代前端开发框架
 - **Pinia** - 状态管理
-- **WindiCSS** - 原子化 CSS 框架
+- **UnoCSS** - 原子化 CSS 框架
 - **DeepSeek API** - AI 对话服务
 - **IndexedDB** - 本地数据存储
 - **Vitest** - 单元测试框架

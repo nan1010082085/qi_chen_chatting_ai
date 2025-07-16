@@ -10,7 +10,7 @@
 - **构建工具**：Vite
 - **UI 组件库**：TDesign Vue Next
 - **状态管理**：Pinia
-- **样式方案**：WindiCSS + SCSS
+- **样式方案**：UnoCSS + SCSS
 - **AI 集成**：LangChain.js
 - **数据存储**：IndexedDB
 - **代码规范**：ESLint + Prettier
@@ -225,10 +225,10 @@ onMounted(() => {
 }
 ```
 
-#### WindiCSS 使用
+#### UnoCSS 使用
 ```vue
 <template>
-  <!-- 优先使用 WindiCSS 原子类 -->
+  <!-- 优先使用 UnoCSS 原子类 -->
   <div class="flex items-center justify-between p-4 bg-white rounded-lg shadow-sm">
     <!-- 复杂样式使用自定义类 -->
     <div class="chat-message">
@@ -238,7 +238,7 @@ onMounted(() => {
 </template>
 
 <style scoped>
-/* 自定义样式补充 WindiCSS 不足 */
+/* 自定义样式补充 UnoCSS 不足 */
 .chat-message {
   /* 复杂的自定义样式 */
 }
